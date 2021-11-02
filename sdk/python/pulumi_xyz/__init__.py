@@ -11,11 +11,11 @@ _utilities.register(
     resource_modules="""
 [
  {
-  "pkg": "xyz",
+  "pkg": "k3s",
   "mod": "index",
-  "fqn": "pulumi_xyz",
+  "fqn": "pulumi_k3s",
   "classes": {
-   "xyz:index:Random": "Random"
+   "k3s:index:Random": "Random"
   }
  }
 ]
@@ -23,9 +23,9 @@ _utilities.register(
     resource_packages="""
 [
  {
-  "pkg": "xyz",
-  "token": "pulumi:providers:xyz",
-  "fqn": "pulumi_xyz",
+  "pkg": "k3s",
+  "token": "pulumi:providers:k3s",
+  "fqn": "pulumi_k3s",
   "class": "Provider"
  }
 ]

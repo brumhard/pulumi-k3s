@@ -1,3 +1,3 @@
-// Package xyz exports types, functions, subpackages for provisioning xyz resources.
+// Package k3s exports types, functions, subpackages for provisioning k3s resources.
 //
-package xyz
+package k3s

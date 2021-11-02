@@ -1,5 +1,5 @@
 {
-    "name": "xyz-typescript",
+    "name": "k3s-typescript",
     "version": "0.1.0",
     "devDependencies": {
         "@types/node": "latest"

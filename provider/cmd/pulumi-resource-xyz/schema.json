@@ -1,8 +1,8 @@
 {
-    "name": "xyz",
+    "name": "k3s",
     "version": "0.0.1",
     "resources": {
-        "xyz:index:Random": {
+        "k3s:index:Random": {
             "properties": {
                 "length": {
                     "type": "integer"
@@ -33,7 +33,7 @@
         },
         "go": {
             "generateResourceContainerTypes": true,
-            "importBasePath": "github.com/pulumi/pulumi-xyz/sdk/go/xyz"
+            "importBasePath": "github.com/pulumi/pulumi-k3s/sdk/go/k3s"
         },
         "nodejs": {
             "dependencies": {

@@ -2,7 +2,7 @@ PROJECT_NAME := Pulumi K3s Resource Provider
 
 PACK             := k3s
 PACKDIR          := sdk
-PROJECT          := github.com/pulumi/pulumi-k3s
+PROJECT          := github.com/brumhard/pulumi-k3s
 NODE_MODULE_NAME := @pulumi/k3s
 NUGET_PKG_NAME   := Pulumi.K3s
 

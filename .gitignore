@@ -1,3 +1,5 @@
+.envrc
+
 /vendor/
 **/bin/
 **/obj/

@@ -2,26 +2,42 @@
     "name": "k3s",
     "version": "0.0.1",
     "resources": {
-        "k3s:index:Random": {
+        "k3s:index:Cluster": {
             "properties": {
-                "length": {
-                    "type": "integer"
+                "ip": {
+                    "type": "string"
                 },
-                "result": {
+                "user": {
+                    "type": "string",
+                    "default": "root"
+                },
+                "kubeconfig": {
+                    "type": "string"
+                },
+                "privateKey": {
                     "type": "string"
                 }
             },
             "required": [
-                "length",
-                "result"
+                "ip",
+                "kubeconfig",
+                "privateKey"
             ],
             "inputProperties": {
-                "length": {
-                    "type": "integer"
+                "ip": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string",
+                    "default": "root"
+                },
+                "privateKey": {
+                    "type": "string"
                 }
             },
             "requiredInputs": [
-                "length"
+                "ip",
+                "privateKey"
             ]
         }
     },

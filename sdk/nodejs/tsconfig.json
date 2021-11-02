@@ -13,9 +13,9 @@
         "strict": true
     },
     "files": [
+        "cluster.ts",
         "index.ts",
         "provider.ts",
-        "random.ts",
         "utilities.ts"
     ]
 }

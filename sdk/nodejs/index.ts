@@ -5,18 +5,18 @@ import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "./utilities";
 
 // Export members:
+export * from "./cluster";
 export * from "./provider";
-export * from "./random";
 
 // Import resources to register:
-import { Random } from "./random";
+import { Cluster } from "./cluster";
 
 const _module = {
     version: utilities.getVersion(),
     construct: (name: string, type: string, urn: string): pulumi.Resource => {
         switch (type) {
-            case "k3s:index:Random":
-                return new Random(name, <any>undefined, { urn })
+            case "k3s:index:Cluster":
+                return new Cluster(name, <any>undefined, { urn })
             default:
                 throw new Error(`unknown resource type ${type}`);
         }

@@ -1,5 +1,12 @@
 import * as k3s from "@pulumi/k3s";
+import { Config } from "@pulumi/pulumi";
 
-const random = new k3s.Random("my-random", { length: 24 });
+const cfg = new Config()
 
-export const output = random.result;
+const cluster = new k3s.Cluster("mycluster", {
+    ip: cfg.require("master_ip"),
+    privateKey: cfg.require("private_key"),
+    user: "ubuntu"
+});
+
+export const kubeconfig = cluster.kubeconfig;

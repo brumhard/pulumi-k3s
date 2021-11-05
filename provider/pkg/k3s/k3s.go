@@ -1,4 +1,4 @@
-package provider
+package k3s
 
 import (
 	"os"
@@ -6,10 +6,22 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
-func makeOrUpdateCluster(name string, configMap map[string]interface{}) (*Cluster, error) {
+var (
+	ErrRequiredProperty = errors.New("property is required")
+	ErrOutputOnly       = errors.New("property is only for output")
+)
+
+type Cluster struct {
+	IP         string `json:"ip" yaml:"ip"`
+	User       string `json:"user" yaml:"user"`
+	KubeConfig string `json:"kubeconfig" yaml:"kubeconfig"`
+	PrivateKey string `json:"privateKey" yaml:"privateKey"`
+}
+
+func MakeOrUpdateCluster(name string, configMap map[string]interface{}) (*Cluster, error) {
 	configBytes, err := yaml.Marshal(configMap)
 	if err != nil {
 		return nil, err
@@ -55,18 +67,6 @@ func makeOrUpdateCluster(name string, configMap map[string]interface{}) (*Cluste
 	cluster.KubeConfig = string(kubeconfigBytes)
 	return &cluster, nil
 }
-
-type Cluster struct {
-	IP         string `json:"ip" yaml:"ip"`
-	User       string `json:"user" yaml:"user"`
-	KubeConfig string `json:"kubeconfig" yaml:"kubeconfig"`
-	PrivateKey string `json:"privateKey" yaml:"privateKey"`
-}
-
-var (
-	ErrRequiredProperty = errors.New("property is required")
-	ErrOutputOnly       = errors.New("property is only for output")
-)
 
 func (c Cluster) Validate() error {
 	if c.IP == "" {

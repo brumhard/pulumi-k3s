@@ -21,6 +21,7 @@ import (
 	"github.com/pulumi/pulumi/pkg/v3/resource/provider"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource/plugin"
+	"github.com/brumhard/pulumi-k3s/provider/pkg/k3s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -105,7 +106,7 @@ func (k *k3sProvider) Create(ctx context.Context, req *pulumirpc.CreateRequest) 
 	}
 
 	// Actually "create" the cluster
-	cluster, err := makeOrUpdateCluster(name, inputs.Mappable())
+	cluster, err := k3s.MakeOrUpdateCluster(name, inputs.Mappable())
 	if err != nil {
 		return nil, err
 	}
@@ -142,8 +143,30 @@ func (k *k3sProvider) Update(ctx context.Context, req *pulumirpc.UpdateRequest) 
 		return nil, fmt.Errorf("Unknown resource type '%s'", ty)
 	}
 
-	// Our Random resource will never be updated - if there is a diff, it will be a replacement.
-	return nil, status.Error(codes.Unimplemented, "Update is not yet implemented for 'k3s:index:Cluster'")
+	name := urn.Name().String()
+
+	inputs, err := plugin.UnmarshalProperties(req.GetNews(), plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true})
+	if err != nil {
+		return nil, err
+	}
+
+	// update
+	cluster, err := k3s.MakeOrUpdateCluster(name, inputs.Mappable())
+	if err != nil {
+		return nil, err
+	}
+
+	outputProperties, err := plugin.MarshalProperties(
+		resource.NewPropertyMap(cluster),
+		plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pulumirpc.UpdateResponse{
+		Properties: outputProperties,
+	}, nil
 }
 
 // Delete tears down an existing resource with the given ID.  If it fails, the resource is assumed

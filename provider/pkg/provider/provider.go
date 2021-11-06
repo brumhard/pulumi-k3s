@@ -16,18 +16,20 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
+	"github.com/brumhard/pulumi-k3s/provider/pkg/k3s"
 	"github.com/pulumi/pulumi/pkg/v3/resource/provider"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource/plugin"
-	"github.com/brumhard/pulumi-k3s/provider/pkg/k3s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	pulumirpc "github.com/pulumi/pulumi/sdk/v3/proto/go"
 
 	pbempty "github.com/golang/protobuf/ptypes/empty"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
 type k3sProvider struct {
@@ -100,13 +102,12 @@ func (k *k3sProvider) Create(ctx context.Context, req *pulumirpc.CreateRequest) 
 
 	name := urn.Name().String()
 
-	inputs, err := plugin.UnmarshalProperties(req.GetProperties(), plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true})
+	cluster, err := propsToCluster(req.GetProperties())
 	if err != nil {
 		return nil, err
 	}
 
-	// Actually "create" the cluster
-	cluster, err := k3s.MakeOrUpdateCluster(name, inputs.Mappable())
+	err = k3s.MakeOrUpdateCluster(name, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -143,15 +144,12 @@ func (k *k3sProvider) Update(ctx context.Context, req *pulumirpc.UpdateRequest) 
 		return nil, fmt.Errorf("Unknown resource type '%s'", ty)
 	}
 
-	name := urn.Name().String()
-
-	inputs, err := plugin.UnmarshalProperties(req.GetNews(), plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true})
+	cluster, err := propsToCluster(req.GetNews())
 	if err != nil {
 		return nil, err
 	}
 
-	// update
-	cluster, err := k3s.MakeOrUpdateCluster(name, inputs.Mappable())
+	err = k3s.MakeOrUpdateCluster(urn.Name().String(), cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +167,25 @@ func (k *k3sProvider) Update(ctx context.Context, req *pulumirpc.UpdateRequest) 
 	}, nil
 }
 
+func propsToCluster(props *structpb.Struct) (*k3s.Cluster, error) {
+	propMap, err := plugin.UnmarshalProperties(props, plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true})
+	if err != nil {
+		return nil, err
+	}
+
+	propBytes, err := json.Marshal(propMap.Mappable())
+	if err != nil {
+		return nil, err
+	}
+
+	var cluster k3s.Cluster
+	if err := json.Unmarshal(propBytes, &cluster); err != nil {
+		return nil, err
+	}
+
+	return &cluster, err
+}
+
 // Delete tears down an existing resource with the given ID.  If it fails, the resource is assumed
 // to still exist.
 func (k *k3sProvider) Delete(ctx context.Context, req *pulumirpc.DeleteRequest) (*pbempty.Empty, error) {
@@ -176,6 +193,16 @@ func (k *k3sProvider) Delete(ctx context.Context, req *pulumirpc.DeleteRequest) 
 	ty := urn.Type()
 	if ty != "k3s:index:Cluster" {
 		return nil, fmt.Errorf("Unknown resource type '%s'", ty)
+	}
+
+	cluster, err := propsToCluster(req.GetProperties())
+	if err != nil {
+		return nil, err
+	}
+
+	err = k3s.DeleteCluster(cluster)
+	if err != nil {
+		return nil, err
 	}
 
 	// Note that for our Random resource, we don't have to do anything on Delete.

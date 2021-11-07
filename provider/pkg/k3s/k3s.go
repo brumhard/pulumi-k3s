@@ -3,12 +3,15 @@ package k3s
 import (
 	"bytes"
 	"fmt"
-	"os"
-	"os/exec"
-	"path"
+	"strings"
 
 	"github.com/brumhard/pulumi-k3s/provider/pkg/sshexec"
 	"github.com/pkg/errors"
+)
+
+const (
+	getScript = "curl -sfL https://get.k3s.io"
+	useSudo   = true
 )
 
 var (
@@ -35,12 +38,7 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
-	tempDir, err := os.MkdirTemp("", name)
-	if err != nil {
-		return err
-	}
-
-	kubeconfig, err := setupMasterNode(cluster.MasterNodes[0], tempDir)
+	kubeconfig, err := setupNode(cluster.MasterNodes[0])
 	if err != nil {
 		return err
 	}
@@ -50,30 +48,52 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	return nil
 }
 
-func setupMasterNode(node Node, tempDir string) (string, error) {
-	sshKeyPath, kubeconfigPath := path.Join(tempDir, "sshkey"), path.Join(tempDir, "kubeconfig")
-	if err := os.WriteFile(sshKeyPath, []byte(node.PrivateKey), os.ModePerm); err != nil {
-		return "", err
+// TODO: add additional installation options like in k3sup
+// TODO: check if cluster is really working after intialization
+func setupNode(node Node) (string, error) {
+	env := fmt.Sprintf(`INSTALL_K3S_CHANNEL=stable INSTALL_K3S_EXEC='server --tls-san "%s"'`, node.Host)
+
+	installK3scommand := fmt.Sprintf("%s | %s sh -\n", getScript, env)
+
+	sudoPrefix := ""
+	if useSudo {
+		sudoPrefix = "sudo "
 	}
 
-	_, err := exec.Command(
-		"k3sup", "install",
-		// TODO: should --host be used here
-		"--ip", node.Host,
-		"--user", node.User,
-		"--ssh-key", sshKeyPath,
-		"--local-path", kubeconfigPath,
-	).CombinedOutput()
+	getConfigcommand := fmt.Sprintf(sudoPrefix + "cat /etc/rancher/k3s/k3s.yaml")
+
+	// execute commands
+
+	// TODO: make port somehow configurable
+	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", node.Host), node.User, []byte(node.PrivateKey))
 	if err != nil {
 		return "", err
 	}
 
-	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
+	stderr := &bytes.Buffer{}
+	err = client.Run(&sshexec.Cmd{
+		Command: installK3scommand,
+		Stderr:  stderr,
+	})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(errors.Wrap(err, stderr.String()), node.Host)
 	}
 
-	return string(kubeconfigBytes), nil
+	stdout := &bytes.Buffer{}
+	err = client.Run(&sshexec.Cmd{
+		Command: getConfigcommand,
+		Stdout:  stdout,
+	})
+	if err != nil {
+		return "", errors.Wrap(errors.Wrap(err, "failed to get kubeconfig"), node.Host)
+	}
+
+	kubeconfigReplacer := strings.NewReplacer(
+		"127.0.0.1", node.Host,
+		"localhost", node.Host,
+	)
+
+	return kubeconfigReplacer.Replace(stdout.String()), nil
 }
 
 func (c Cluster) Validate() error {
@@ -115,19 +135,21 @@ func DeleteCluster(cluster *Cluster) error {
 	return nil
 }
 
-func executeOnNode(node Node, command string) error {
+func executeOnNode(node Node, commands ...string) error {
 	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", node.Host), node.User, []byte(node.PrivateKey))
 	if err != nil {
 		return err
 	}
 
-	stderr := &bytes.Buffer{}
-	err = client.Run(&sshexec.Cmd{
-		Command: command,
-		Stderr:  stderr,
-	})
-	if err != nil {
-		return errors.Wrap(errors.Wrap(err, stderr.String()), node.Host)
+	for _, command := range commands {
+		stderr := &bytes.Buffer{}
+		err = client.Run(&sshexec.Cmd{
+			Command: command,
+			Stderr:  stderr,
+		})
+		if err != nil {
+			return errors.Wrap(errors.Wrap(err, stderr.String()), node.Host)
+		}
 	}
 
 	return nil

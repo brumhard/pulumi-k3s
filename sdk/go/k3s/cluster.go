@@ -14,10 +14,9 @@ import (
 type Cluster struct {
 	pulumi.CustomResourceState
 
-	Ip         pulumi.StringOutput    `pulumi:"ip"`
-	Kubeconfig pulumi.StringOutput    `pulumi:"kubeconfig"`
-	PrivateKey pulumi.StringOutput    `pulumi:"privateKey"`
-	User       pulumi.StringPtrOutput `pulumi:"user"`
+	Agents      NodeArrayOutput     `pulumi:"agents"`
+	Kubeconfig  pulumi.StringOutput `pulumi:"kubeconfig"`
+	MasterNodes NodeArrayOutput     `pulumi:"masterNodes"`
 }
 
 // NewCluster registers a new resource with the given unique name, arguments, and options.
@@ -27,14 +26,8 @@ func NewCluster(ctx *pulumi.Context,
 		return nil, errors.New("missing one or more required arguments")
 	}
 
-	if args.Ip == nil {
-		return nil, errors.New("invalid value for required argument 'Ip'")
-	}
-	if args.PrivateKey == nil {
-		return nil, errors.New("invalid value for required argument 'PrivateKey'")
-	}
-	if args.User == nil {
-		args.User = pulumi.StringPtr("root")
+	if args.MasterNodes == nil {
+		return nil, errors.New("invalid value for required argument 'MasterNodes'")
 	}
 	var resource Cluster
 	err := ctx.RegisterResource("k3s:index:Cluster", name, args, &resource, opts...)
@@ -68,16 +61,14 @@ func (ClusterState) ElementType() reflect.Type {
 }
 
 type clusterArgs struct {
-	Ip         string  `pulumi:"ip"`
-	PrivateKey string  `pulumi:"privateKey"`
-	User       *string `pulumi:"user"`
+	Agents      []Node `pulumi:"agents"`
+	MasterNodes []Node `pulumi:"masterNodes"`
 }
 
 // The set of arguments for constructing a Cluster resource.
 type ClusterArgs struct {
-	Ip         pulumi.StringInput
-	PrivateKey pulumi.StringInput
-	User       pulumi.StringPtrInput
+	Agents      NodeArrayInput
+	MasterNodes NodeArrayInput
 }
 
 func (ClusterArgs) ElementType() reflect.Type {

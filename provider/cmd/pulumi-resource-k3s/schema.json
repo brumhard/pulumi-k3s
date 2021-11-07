@@ -3,28 +3,68 @@
     "version": "0.0.1",
     "resources": {
         "k3s:index:Cluster": {
+            "type": "object",
             "properties": {
-                "ip": {
+                "masterNodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/types/k3s:index:Node"
+                    }
+                },
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/types/k3s:index:Node"
+                    }
+                },
+                "kubeconfig": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "masterNodes",
+                "kubeconfig"
+            ],
+            "inputProperties": {
+                "masterNodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/types/k3s:index:Node"
+                    }
+                },
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/types/k3s:index:Node"
+                    }
+                }
+            },
+            "requiredInputs": [
+                "masterNodes"
+            ]
+        }
+    },
+    "types": {
+        "k3s:index:Node": {
+            "type": "object",
+            "properties": {
+                "host": {
                     "type": "string"
                 },
                 "user": {
                     "type": "string",
                     "default": "root"
                 },
-                "kubeconfig": {
-                    "type": "string"
-                },
                 "privateKey": {
                     "type": "string"
                 }
             },
             "required": [
-                "ip",
-                "kubeconfig",
+                "host",
                 "privateKey"
             ],
             "inputProperties": {
-                "ip": {
+                "host": {
                     "type": "string"
                 },
                 "user": {
@@ -36,7 +76,7 @@
                 }
             },
             "requiredInputs": [
-                "ip",
+                "host",
                 "privateKey"
             ]
         }

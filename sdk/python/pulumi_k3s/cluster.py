@@ -7,51 +7,40 @@ import pulumi
 import pulumi.runtime
 from typing import Any, Mapping, Optional, Sequence, Union, overload
 from . import _utilities
+from . import outputs
+from ._inputs import *
 
 __all__ = ['ClusterArgs', 'Cluster']
 
 @pulumi.input_type
 class ClusterArgs:
     def __init__(__self__, *,
-                 ip: pulumi.Input[str],
-                 private_key: pulumi.Input[str],
-                 user: Optional[pulumi.Input[str]] = None):
+                 master_nodes: pulumi.Input[Sequence[pulumi.Input['NodeArgs']]],
+                 agents: Optional[pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]] = None):
         """
         The set of arguments for constructing a Cluster resource.
         """
-        pulumi.set(__self__, "ip", ip)
-        pulumi.set(__self__, "private_key", private_key)
-        if user is None:
-            user = 'root'
-        if user is not None:
-            pulumi.set(__self__, "user", user)
+        pulumi.set(__self__, "master_nodes", master_nodes)
+        if agents is not None:
+            pulumi.set(__self__, "agents", agents)
+
+    @property
+    @pulumi.getter(name="masterNodes")
+    def master_nodes(self) -> pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]:
+        return pulumi.get(self, "master_nodes")
+
+    @master_nodes.setter
+    def master_nodes(self, value: pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]):
+        pulumi.set(self, "master_nodes", value)
 
     @property
     @pulumi.getter
-    def ip(self) -> pulumi.Input[str]:
-        return pulumi.get(self, "ip")
+    def agents(self) -> Optional[pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]]:
+        return pulumi.get(self, "agents")
 
-    @ip.setter
-    def ip(self, value: pulumi.Input[str]):
-        pulumi.set(self, "ip", value)
-
-    @property
-    @pulumi.getter(name="privateKey")
-    def private_key(self) -> pulumi.Input[str]:
-        return pulumi.get(self, "private_key")
-
-    @private_key.setter
-    def private_key(self, value: pulumi.Input[str]):
-        pulumi.set(self, "private_key", value)
-
-    @property
-    @pulumi.getter
-    def user(self) -> Optional[pulumi.Input[str]]:
-        return pulumi.get(self, "user")
-
-    @user.setter
-    def user(self, value: Optional[pulumi.Input[str]]):
-        pulumi.set(self, "user", value)
+    @agents.setter
+    def agents(self, value: Optional[pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]]):
+        pulumi.set(self, "agents", value)
 
 
 class Cluster(pulumi.CustomResource):
@@ -59,9 +48,8 @@ class Cluster(pulumi.CustomResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 ip: Optional[pulumi.Input[str]] = None,
-                 private_key: Optional[pulumi.Input[str]] = None,
-                 user: Optional[pulumi.Input[str]] = None,
+                 agents: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
+                 master_nodes: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
                  __props__=None):
         """
         Create a Cluster resource with the given unique name, props, and options.
@@ -91,9 +79,8 @@ class Cluster(pulumi.CustomResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 ip: Optional[pulumi.Input[str]] = None,
-                 private_key: Optional[pulumi.Input[str]] = None,
-                 user: Optional[pulumi.Input[str]] = None,
+                 agents: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
+                 master_nodes: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
                  __props__=None):
         if opts is None:
             opts = pulumi.ResourceOptions()
@@ -106,15 +93,10 @@ class Cluster(pulumi.CustomResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = ClusterArgs.__new__(ClusterArgs)
 
-            if ip is None and not opts.urn:
-                raise TypeError("Missing required property 'ip'")
-            __props__.__dict__["ip"] = ip
-            if private_key is None and not opts.urn:
-                raise TypeError("Missing required property 'private_key'")
-            __props__.__dict__["private_key"] = private_key
-            if user is None:
-                user = 'root'
-            __props__.__dict__["user"] = user
+            __props__.__dict__["agents"] = agents
+            if master_nodes is None and not opts.urn:
+                raise TypeError("Missing required property 'master_nodes'")
+            __props__.__dict__["master_nodes"] = master_nodes
             __props__.__dict__["kubeconfig"] = None
         super(Cluster, __self__).__init__(
             'k3s:index:Cluster',
@@ -138,16 +120,15 @@ class Cluster(pulumi.CustomResource):
 
         __props__ = ClusterArgs.__new__(ClusterArgs)
 
-        __props__.__dict__["ip"] = None
+        __props__.__dict__["agents"] = None
         __props__.__dict__["kubeconfig"] = None
-        __props__.__dict__["private_key"] = None
-        __props__.__dict__["user"] = None
+        __props__.__dict__["master_nodes"] = None
         return Cluster(resource_name, opts=opts, __props__=__props__)
 
     @property
     @pulumi.getter
-    def ip(self) -> pulumi.Output[str]:
-        return pulumi.get(self, "ip")
+    def agents(self) -> pulumi.Output[Optional[Sequence['outputs.Node']]]:
+        return pulumi.get(self, "agents")
 
     @property
     @pulumi.getter
@@ -155,12 +136,7 @@ class Cluster(pulumi.CustomResource):
         return pulumi.get(self, "kubeconfig")
 
     @property
-    @pulumi.getter(name="privateKey")
-    def private_key(self) -> pulumi.Output[str]:
-        return pulumi.get(self, "private_key")
-
-    @property
-    @pulumi.getter
-    def user(self) -> pulumi.Output[Optional[str]]:
-        return pulumi.get(self, "user")
+    @pulumi.getter(name="masterNodes")
+    def master_nodes(self) -> pulumi.Output[Sequence['outputs.Node']]:
+        return pulumi.get(self, "master_nodes")
 

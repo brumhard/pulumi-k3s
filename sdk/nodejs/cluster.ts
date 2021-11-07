@@ -2,6 +2,7 @@
 // *** Do not edit by hand unless you're certain you know what you are doing! ***
 
 import * as pulumi from "@pulumi/pulumi";
+import { input as inputs, output as outputs } from "./types";
 import * as utilities from "./utilities";
 
 export class Cluster extends pulumi.CustomResource {
@@ -31,10 +32,9 @@ export class Cluster extends pulumi.CustomResource {
         return obj['__pulumiType'] === Cluster.__pulumiType;
     }
 
-    public readonly ip!: pulumi.Output<string>;
+    public readonly agents!: pulumi.Output<outputs.Node[] | undefined>;
     public /*out*/ readonly kubeconfig!: pulumi.Output<string>;
-    public readonly privateKey!: pulumi.Output<string>;
-    public readonly user!: pulumi.Output<string | undefined>;
+    public readonly masterNodes!: pulumi.Output<outputs.Node[]>;
 
     /**
      * Create a Cluster resource with the given unique name, arguments, and options.
@@ -47,21 +47,16 @@ export class Cluster extends pulumi.CustomResource {
         let inputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            if ((!args || args.ip === undefined) && !opts.urn) {
-                throw new Error("Missing required property 'ip'");
+            if ((!args || args.masterNodes === undefined) && !opts.urn) {
+                throw new Error("Missing required property 'masterNodes'");
             }
-            if ((!args || args.privateKey === undefined) && !opts.urn) {
-                throw new Error("Missing required property 'privateKey'");
-            }
-            inputs["ip"] = args ? args.ip : undefined;
-            inputs["privateKey"] = args ? args.privateKey : undefined;
-            inputs["user"] = (args ? args.user : undefined) ?? "root";
+            inputs["agents"] = args ? args.agents : undefined;
+            inputs["masterNodes"] = args ? args.masterNodes : undefined;
             inputs["kubeconfig"] = undefined /*out*/;
         } else {
-            inputs["ip"] = undefined /*out*/;
+            inputs["agents"] = undefined /*out*/;
             inputs["kubeconfig"] = undefined /*out*/;
-            inputs["privateKey"] = undefined /*out*/;
-            inputs["user"] = undefined /*out*/;
+            inputs["masterNodes"] = undefined /*out*/;
         }
         if (!opts.version) {
             opts = pulumi.mergeOptions(opts, { version: utilities.getVersion()});
@@ -74,7 +69,6 @@ export class Cluster extends pulumi.CustomResource {
  * The set of arguments for constructing a Cluster resource.
  */
 export interface ClusterArgs {
-    ip: pulumi.Input<string>;
-    privateKey: pulumi.Input<string>;
-    user?: pulumi.Input<string>;
+    agents?: pulumi.Input<pulumi.Input<inputs.NodeArgs>[]>;
+    masterNodes: pulumi.Input<pulumi.Input<inputs.NodeArgs>[]>;
 }

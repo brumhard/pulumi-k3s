@@ -12,17 +12,14 @@ namespace Pulumi.K3s
     [K3sResourceType("k3s:index:Cluster")]
     public partial class Cluster : Pulumi.CustomResource
     {
-        [Output("ip")]
-        public Output<string> Ip { get; private set; } = null!;
+        [Output("agents")]
+        public Output<ImmutableArray<Outputs.Node>> Agents { get; private set; } = null!;
 
         [Output("kubeconfig")]
         public Output<string> Kubeconfig { get; private set; } = null!;
 
-        [Output("privateKey")]
-        public Output<string> PrivateKey { get; private set; } = null!;
-
-        [Output("user")]
-        public Output<string?> User { get; private set; } = null!;
+        [Output("masterNodes")]
+        public Output<ImmutableArray<Outputs.Node>> MasterNodes { get; private set; } = null!;
 
 
         /// <summary>
@@ -69,18 +66,24 @@ namespace Pulumi.K3s
 
     public sealed class ClusterArgs : Pulumi.ResourceArgs
     {
-        [Input("ip", required: true)]
-        public Input<string> Ip { get; set; } = null!;
+        [Input("agents")]
+        private InputList<Inputs.NodeArgs>? _agents;
+        public InputList<Inputs.NodeArgs> Agents
+        {
+            get => _agents ?? (_agents = new InputList<Inputs.NodeArgs>());
+            set => _agents = value;
+        }
 
-        [Input("privateKey", required: true)]
-        public Input<string> PrivateKey { get; set; } = null!;
-
-        [Input("user")]
-        public Input<string>? User { get; set; }
+        [Input("masterNodes", required: true)]
+        private InputList<Inputs.NodeArgs>? _masterNodes;
+        public InputList<Inputs.NodeArgs> MasterNodes
+        {
+            get => _masterNodes ?? (_masterNodes = new InputList<Inputs.NodeArgs>());
+            set => _masterNodes = value;
+        }
 
         public ClusterArgs()
         {
-            User = "root";
         }
     }
 }

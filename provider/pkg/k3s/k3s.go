@@ -16,11 +16,18 @@ var (
 	ErrOutputOnly       = errors.New("property is only for output")
 )
 
+// TODO: generate schema from this struct
 type Cluster struct {
-	IP         string `json:"ip" yaml:"ip"`
-	User       string `json:"user" yaml:"user"`
-	KubeConfig string `json:"kubeconfig" yaml:"kubeconfig"`
-	PrivateKey string `json:"privateKey" yaml:"privateKey"`
+	MasterNodes []Node `json:"masterNodes"`
+	Agents      []Node `json:"agents"`
+	KubeConfig  string `json:"kubeconfig"`
+}
+
+// TODO: user and privatekey in provider as defaults (like region in openstack)
+type Node struct {
+	Host       string `json:"host"`
+	User       string `json:"user"`
+	PrivateKey string `json:"privateKey"`
 }
 
 func MakeOrUpdateCluster(name string, cluster *Cluster) error {
@@ -33,60 +40,110 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
-	sshKeyPath, kubeconfigPath := path.Join(tempDir, "sshkey"), path.Join(tempDir, "kubeconfig")
-	if err := os.WriteFile(sshKeyPath, []byte(cluster.PrivateKey), os.ModePerm); err != nil {
+	kubeconfig, err := setupMasterNode(cluster.MasterNodes[0], tempDir)
+	if err != nil {
 		return err
 	}
 
-	_, err = exec.Command(
+	cluster.KubeConfig = kubeconfig
+
+	return nil
+}
+
+func setupMasterNode(node Node, tempDir string) (string, error) {
+	sshKeyPath, kubeconfigPath := path.Join(tempDir, "sshkey"), path.Join(tempDir, "kubeconfig")
+	if err := os.WriteFile(sshKeyPath, []byte(node.PrivateKey), os.ModePerm); err != nil {
+		return "", err
+	}
+
+	_, err := exec.Command(
 		"k3sup", "install",
-		"--ip", cluster.IP,
-		"--user", cluster.User,
+		// TODO: should --host be used here
+		"--ip", node.Host,
+		"--user", node.User,
 		"--ssh-key", sshKeyPath,
 		"--local-path", kubeconfigPath,
 	).CombinedOutput()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	cluster.KubeConfig = string(kubeconfigBytes)
+	return string(kubeconfigBytes), nil
+}
+
+func (c Cluster) Validate() error {
+	if len(c.MasterNodes) != 1 {
+		return errors.New("only clusters with exactly 1 master node supported")
+	}
+
+	if len(c.Agents) > 0 {
+		return errors.New("agents are currently not supported")
+	}
+
+	if c.KubeConfig != "" {
+		return errors.Wrap(ErrOutputOnly, "kubeconfig")
+	}
+
+	for _, n := range append(c.MasterNodes, c.Agents...) {
+		if err := n.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func DeleteCluster(cluster *Cluster) error {
-	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", cluster.IP), cluster.User, []byte(cluster.PrivateKey))
+	for _, n := range cluster.MasterNodes {
+		// TODO: handle error if already gone
+		if err := executeOnNode(n, "/usr/local/bin/k3s-uninstall.sh"); err != nil {
+			return err
+		}
+	}
+
+	for _, n := range cluster.Agents {
+		if err := executeOnNode(n, "/usr/local/bin/k3s-agent-uninstall.sh"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func executeOnNode(node Node, command string) error {
+	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", node.Host), node.User, []byte(node.PrivateKey))
 	if err != nil {
 		return err
 	}
 
 	stderr := &bytes.Buffer{}
 	err = client.Run(&sshexec.Cmd{
-		Command: "/usr/local/bin/k3s-uninstall.sh",
+		Command: command,
 		Stderr:  stderr,
 	})
 	if err != nil {
-		return errors.Wrap(err, stderr.String())
+		return errors.Wrap(errors.Wrap(err, stderr.String()), node.Host)
 	}
 
 	return nil
 }
 
-func (c Cluster) Validate() error {
-	if c.IP == "" {
-		return errors.Wrap(ErrRequiredProperty, "ip")
+func (n Node) Validate() error {
+	if n.Host == "" {
+		return errors.Wrap(ErrRequiredProperty, "host")
 	}
 
-	if c.PrivateKey == "" {
+	if n.PrivateKey == "" {
 		return errors.Wrap(ErrRequiredProperty, "privateKey")
 	}
 
-	if c.KubeConfig != "" {
-		return errors.Wrap(ErrOutputOnly, "kubeconfig")
+	if n.User == "" {
+		return errors.Wrap(ErrRequiredProperty, "user")
 	}
 
 	return nil

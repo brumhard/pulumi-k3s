@@ -8,6 +8,13 @@ import * as utilities from "./utilities";
 export * from "./cluster";
 export * from "./provider";
 
+// Export sub-modules:
+import * as types from "./types";
+
+export {
+    types,
+};
+
 // Import resources to register:
 import { Cluster } from "./cluster";
 

@@ -4,9 +4,13 @@ import { Config } from "@pulumi/pulumi";
 const cfg = new Config()
 
 const cluster = new k3s.Cluster("mycluster", {
-    ip: cfg.require("master_ip"),
-    privateKey: cfg.require("private_key"),
-    user: "ubuntu"
+    masterNodes: [
+        {
+            host: cfg.require("master_ip"),
+            privateKey: cfg.require("private_key"),
+            user: "ubuntu",
+        }
+    ]
 });
 
 export const kubeconfig = cluster.kubeconfig;

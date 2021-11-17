@@ -10,6 +10,7 @@ from . import _utilities
 
 __all__ = [
     'Node',
+    'VersionConfiguration',
 ]
 
 @pulumi.output_type
@@ -56,5 +57,26 @@ class Node(dict):
     @pulumi.getter
     def user(self) -> Optional[str]:
         return pulumi.get(self, "user")
+
+
+@pulumi.output_type
+class VersionConfiguration(dict):
+    def __init__(__self__, *,
+                 channel: Optional[str] = None,
+                 version: Optional[str] = None):
+        if channel is not None:
+            pulumi.set(__self__, "channel", channel)
+        if version is not None:
+            pulumi.set(__self__, "version", version)
+
+    @property
+    @pulumi.getter
+    def channel(self) -> Optional[str]:
+        return pulumi.get(self, "channel")
+
+    @property
+    @pulumi.getter
+    def version(self) -> Optional[str]:
+        return pulumi.get(self, "version")
 
 

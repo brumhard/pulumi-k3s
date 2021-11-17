@@ -14,9 +14,10 @@ import (
 type Cluster struct {
 	pulumi.CustomResourceState
 
-	Agents      NodeArrayOutput     `pulumi:"agents"`
-	Kubeconfig  pulumi.StringOutput `pulumi:"kubeconfig"`
-	MasterNodes NodeArrayOutput     `pulumi:"masterNodes"`
+	Agents        NodeArrayOutput               `pulumi:"agents"`
+	Kubeconfig    pulumi.StringOutput           `pulumi:"kubeconfig"`
+	MasterNodes   NodeArrayOutput               `pulumi:"masterNodes"`
+	VersionConfig VersionConfigurationPtrOutput `pulumi:"versionConfig"`
 }
 
 // NewCluster registers a new resource with the given unique name, arguments, and options.
@@ -61,14 +62,16 @@ func (ClusterState) ElementType() reflect.Type {
 }
 
 type clusterArgs struct {
-	Agents      []Node `pulumi:"agents"`
-	MasterNodes []Node `pulumi:"masterNodes"`
+	Agents        []Node                `pulumi:"agents"`
+	MasterNodes   []Node                `pulumi:"masterNodes"`
+	VersionConfig *VersionConfiguration `pulumi:"versionConfig"`
 }
 
 // The set of arguments for constructing a Cluster resource.
 type ClusterArgs struct {
-	Agents      NodeArrayInput
-	MasterNodes NodeArrayInput
+	Agents        NodeArrayInput
+	MasterNodes   NodeArrayInput
+	VersionConfig VersionConfigurationPtrInput
 }
 
 func (ClusterArgs) ElementType() reflect.Type {

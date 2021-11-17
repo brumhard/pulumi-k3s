@@ -21,6 +21,9 @@ namespace Pulumi.K3s
         [Output("masterNodes")]
         public Output<ImmutableArray<Outputs.Node>> MasterNodes { get; private set; } = null!;
 
+        [Output("versionConfig")]
+        public Output<Outputs.VersionConfiguration?> VersionConfig { get; private set; } = null!;
+
 
         /// <summary>
         /// Create a Cluster resource with the given unique name, arguments, and options.
@@ -81,6 +84,9 @@ namespace Pulumi.K3s
             get => _masterNodes ?? (_masterNodes = new InputList<Inputs.NodeArgs>());
             set => _masterNodes = value;
         }
+
+        [Input("versionConfig")]
+        public Input<Inputs.VersionConfigurationArgs>? VersionConfig { get; set; }
 
         public ClusterArgs()
         {

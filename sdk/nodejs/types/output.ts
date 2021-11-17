@@ -10,3 +10,8 @@ export interface Node {
     user?: string;
 }
 
+export interface VersionConfiguration {
+    channel?: string;
+    version?: string;
+}
+

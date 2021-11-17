@@ -35,6 +35,7 @@ export class Cluster extends pulumi.CustomResource {
     public readonly agents!: pulumi.Output<outputs.Node[] | undefined>;
     public /*out*/ readonly kubeconfig!: pulumi.Output<string>;
     public readonly masterNodes!: pulumi.Output<outputs.Node[]>;
+    public readonly versionConfig!: pulumi.Output<outputs.VersionConfiguration | undefined>;
 
     /**
      * Create a Cluster resource with the given unique name, arguments, and options.
@@ -52,11 +53,13 @@ export class Cluster extends pulumi.CustomResource {
             }
             inputs["agents"] = args ? args.agents : undefined;
             inputs["masterNodes"] = args ? args.masterNodes : undefined;
+            inputs["versionConfig"] = args ? args.versionConfig : undefined;
             inputs["kubeconfig"] = undefined /*out*/;
         } else {
             inputs["agents"] = undefined /*out*/;
             inputs["kubeconfig"] = undefined /*out*/;
             inputs["masterNodes"] = undefined /*out*/;
+            inputs["versionConfig"] = undefined /*out*/;
         }
         if (!opts.version) {
             opts = pulumi.mergeOptions(opts, { version: utilities.getVersion()});
@@ -71,4 +74,5 @@ export class Cluster extends pulumi.CustomResource {
 export interface ClusterArgs {
     agents?: pulumi.Input<pulumi.Input<inputs.NodeArgs>[]>;
     masterNodes: pulumi.Input<pulumi.Input<inputs.NodeArgs>[]>;
+    versionConfig?: pulumi.Input<inputs.VersionConfigurationArgs>;
 }

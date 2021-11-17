@@ -21,9 +21,10 @@ var (
 
 // TODO: generate schema from this struct
 type Cluster struct {
-	MasterNodes []Node `json:"masterNodes"`
-	Agents      []Node `json:"agents"`
-	KubeConfig  string `json:"kubeconfig"`
+	MasterNodes   []Node               `json:"masterNodes"`
+	Agents        []Node               `json:"agents"`
+	KubeConfig    string               `json:"kubeconfig"`
+	VersionConfig VersionConfiguration `json:"versionConfig"`
 }
 
 // TODO: user and privatekey in provider as defaults (like region in openstack)
@@ -33,12 +34,34 @@ type Node struct {
 	PrivateKey string `json:"privateKey"`
 }
 
+
+// VersionConfiguration resembles a K3s version. This can either be a release channel or a static version.
+// If both are set the defined version will be preferred.
+// Available channels can be found at: https://rancher.com/docs/k3s/latest/en/upgrades/basic/#release-channels
+// An autoupdate configuration will automatically be added.
+// For more information look here: https://rancher.com/docs/k3s/latest/en/upgrades/automated/
+// If none is set stable channel will be used.
+type VersionConfiguration struct {
+	Channel string `json:"channel"`
+	Version string `json:"version"`
+}
+
+func (v VersionConfiguration) EnvSetting() string {
+	if v.Version != "" {
+		return fmt.Sprintf("INSTALL_K3S_VERSION='%s'", v.Version)
+	}
+	if v.Channel != "" {
+		return fmt.Sprintf("INSTALL_K3S_CHANNEL='%s'", v.Channel)
+	}
+	return "INSTALL_K3S_CHANNEL='stable'"
+}
+
 func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	if err := cluster.Validate(); err != nil {
 		return err
 	}
 
-	kubeconfig, err := setupNode(cluster.MasterNodes[0])
+	kubeconfig, err := setupNode(cluster.MasterNodes[0], cluster.VersionConfig)
 	if err != nil {
 		return err
 	}
@@ -48,12 +71,24 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	return nil
 }
 
-// TODO: add additional installation options like in k3sup
 // TODO: check if cluster is really working after intialization
-func setupNode(node Node) (string, error) {
-	env := fmt.Sprintf(`INSTALL_K3S_CHANNEL=stable INSTALL_K3S_EXEC='server --tls-san "%s"'`, node.Host)
+// TODO: run kube-bench on k3s cluster
+// TODO: add option to setup cilium as CNI
+// https://docs.cilium.io/en/v1.9/gettingstarted/k3s/
+// should be enough to enable ebf filesystem and disable the cni backend and then install cilium with kubernetes provider
+// -> enableEbpf option?
+// TODO: add option setup gVisor with containerd
+// -> https://rancher.com/docs/k3s/latest/en/advanced/#configuring-containerd
+// -> probably restart needed: sudo systemctl restart k3s
+// -> maybe problems with https://github.com/k3s-io/k3s/issues/3378
+// TODO: implement hardening guide https://rancher.com/docs/k3s/latest/en/security/hardening_guide/
+func setupNode(node Node, versionConfig VersionConfiguration) (string, error) {
+	env := []string{
+		versionConfig.EnvSetting(),
+		fmt.Sprintf(`INSTALL_K3S_EXEC='server --tls-san "%s"'`, node.Host),
+	}
 
-	installK3scommand := fmt.Sprintf("%s | %s sh -\n", getScript, env)
+	installK3scommand := fmt.Sprintf("%s | %s sh -\n", getScript, strings.Join(env, " "))
 
 	sudoPrefix := ""
 	if useSudo {
@@ -70,13 +105,14 @@ func setupNode(node Node) (string, error) {
 		return "", err
 	}
 
-	stderr := &bytes.Buffer{}
+	stdouterr := &bytes.Buffer{}
 	err = client.Run(&sshexec.Cmd{
 		Command: installK3scommand,
-		Stderr:  stderr,
+		Stderr:  stdouterr,
+		Stdout:  stdouterr,
 	})
 	if err != nil {
-		return "", errors.Wrap(errors.Wrap(err, stderr.String()), node.Host)
+		return "", errors.Wrap(errors.Wrap(err, stdouterr.String()), node.Host)
 	}
 
 	stdout := &bytes.Buffer{}

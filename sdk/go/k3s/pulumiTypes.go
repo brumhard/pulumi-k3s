@@ -116,7 +116,150 @@ func (o NodeArrayOutput) Index(i pulumi.IntInput) NodeOutput {
 	}).(NodeOutput)
 }
 
+type VersionConfiguration struct {
+	Channel *string `pulumi:"channel"`
+	Version *string `pulumi:"version"`
+}
+
+// VersionConfigurationInput is an input type that accepts VersionConfigurationArgs and VersionConfigurationOutput values.
+// You can construct a concrete instance of `VersionConfigurationInput` via:
+//
+//          VersionConfigurationArgs{...}
+type VersionConfigurationInput interface {
+	pulumi.Input
+
+	ToVersionConfigurationOutput() VersionConfigurationOutput
+	ToVersionConfigurationOutputWithContext(context.Context) VersionConfigurationOutput
+}
+
+type VersionConfigurationArgs struct {
+	Channel pulumi.StringPtrInput `pulumi:"channel"`
+	Version pulumi.StringPtrInput `pulumi:"version"`
+}
+
+func (VersionConfigurationArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*VersionConfiguration)(nil)).Elem()
+}
+
+func (i VersionConfigurationArgs) ToVersionConfigurationOutput() VersionConfigurationOutput {
+	return i.ToVersionConfigurationOutputWithContext(context.Background())
+}
+
+func (i VersionConfigurationArgs) ToVersionConfigurationOutputWithContext(ctx context.Context) VersionConfigurationOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(VersionConfigurationOutput)
+}
+
+func (i VersionConfigurationArgs) ToVersionConfigurationPtrOutput() VersionConfigurationPtrOutput {
+	return i.ToVersionConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (i VersionConfigurationArgs) ToVersionConfigurationPtrOutputWithContext(ctx context.Context) VersionConfigurationPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(VersionConfigurationOutput).ToVersionConfigurationPtrOutputWithContext(ctx)
+}
+
+// VersionConfigurationPtrInput is an input type that accepts VersionConfigurationArgs, VersionConfigurationPtr and VersionConfigurationPtrOutput values.
+// You can construct a concrete instance of `VersionConfigurationPtrInput` via:
+//
+//          VersionConfigurationArgs{...}
+//
+//  or:
+//
+//          nil
+type VersionConfigurationPtrInput interface {
+	pulumi.Input
+
+	ToVersionConfigurationPtrOutput() VersionConfigurationPtrOutput
+	ToVersionConfigurationPtrOutputWithContext(context.Context) VersionConfigurationPtrOutput
+}
+
+type versionConfigurationPtrType VersionConfigurationArgs
+
+func VersionConfigurationPtr(v *VersionConfigurationArgs) VersionConfigurationPtrInput {
+	return (*versionConfigurationPtrType)(v)
+}
+
+func (*versionConfigurationPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**VersionConfiguration)(nil)).Elem()
+}
+
+func (i *versionConfigurationPtrType) ToVersionConfigurationPtrOutput() VersionConfigurationPtrOutput {
+	return i.ToVersionConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (i *versionConfigurationPtrType) ToVersionConfigurationPtrOutputWithContext(ctx context.Context) VersionConfigurationPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(VersionConfigurationPtrOutput)
+}
+
+type VersionConfigurationOutput struct{ *pulumi.OutputState }
+
+func (VersionConfigurationOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*VersionConfiguration)(nil)).Elem()
+}
+
+func (o VersionConfigurationOutput) ToVersionConfigurationOutput() VersionConfigurationOutput {
+	return o
+}
+
+func (o VersionConfigurationOutput) ToVersionConfigurationOutputWithContext(ctx context.Context) VersionConfigurationOutput {
+	return o
+}
+
+func (o VersionConfigurationOutput) ToVersionConfigurationPtrOutput() VersionConfigurationPtrOutput {
+	return o.ToVersionConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (o VersionConfigurationOutput) ToVersionConfigurationPtrOutputWithContext(ctx context.Context) VersionConfigurationPtrOutput {
+	return o.ApplyT(func(v VersionConfiguration) *VersionConfiguration {
+		return &v
+	}).(VersionConfigurationPtrOutput)
+}
+func (o VersionConfigurationOutput) Channel() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v VersionConfiguration) *string { return v.Channel }).(pulumi.StringPtrOutput)
+}
+
+func (o VersionConfigurationOutput) Version() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v VersionConfiguration) *string { return v.Version }).(pulumi.StringPtrOutput)
+}
+
+type VersionConfigurationPtrOutput struct{ *pulumi.OutputState }
+
+func (VersionConfigurationPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**VersionConfiguration)(nil)).Elem()
+}
+
+func (o VersionConfigurationPtrOutput) ToVersionConfigurationPtrOutput() VersionConfigurationPtrOutput {
+	return o
+}
+
+func (o VersionConfigurationPtrOutput) ToVersionConfigurationPtrOutputWithContext(ctx context.Context) VersionConfigurationPtrOutput {
+	return o
+}
+
+func (o VersionConfigurationPtrOutput) Elem() VersionConfigurationOutput {
+	return o.ApplyT(func(v *VersionConfiguration) VersionConfiguration { return *v }).(VersionConfigurationOutput)
+}
+
+func (o VersionConfigurationPtrOutput) Channel() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *VersionConfiguration) *string {
+		if v == nil {
+			return nil
+		}
+		return v.Channel
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o VersionConfigurationPtrOutput) Version() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *VersionConfiguration) *string {
+		if v == nil {
+			return nil
+		}
+		return v.Version
+	}).(pulumi.StringPtrOutput)
+}
+
 func init() {
 	pulumi.RegisterOutputType(NodeOutput{})
 	pulumi.RegisterOutputType(NodeArrayOutput{})
+	pulumi.RegisterOutputType(VersionConfigurationOutput{})
+	pulumi.RegisterOutputType(VersionConfigurationPtrOutput{})
 }

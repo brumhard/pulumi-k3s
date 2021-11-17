@@ -9,3 +9,8 @@ export interface NodeArgs {
     privateKey: pulumi.Input<string>;
     user?: pulumi.Input<string>;
 }
+
+export interface VersionConfigurationArgs {
+    channel?: pulumi.Input<string>;
+    version?: pulumi.Input<string>;
+}

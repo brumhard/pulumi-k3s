@@ -16,13 +16,16 @@ __all__ = ['ClusterArgs', 'Cluster']
 class ClusterArgs:
     def __init__(__self__, *,
                  master_nodes: pulumi.Input[Sequence[pulumi.Input['NodeArgs']]],
-                 agents: Optional[pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]] = None):
+                 agents: Optional[pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]] = None,
+                 version_config: Optional[pulumi.Input['VersionConfigurationArgs']] = None):
         """
         The set of arguments for constructing a Cluster resource.
         """
         pulumi.set(__self__, "master_nodes", master_nodes)
         if agents is not None:
             pulumi.set(__self__, "agents", agents)
+        if version_config is not None:
+            pulumi.set(__self__, "version_config", version_config)
 
     @property
     @pulumi.getter(name="masterNodes")
@@ -42,6 +45,15 @@ class ClusterArgs:
     def agents(self, value: Optional[pulumi.Input[Sequence[pulumi.Input['NodeArgs']]]]):
         pulumi.set(self, "agents", value)
 
+    @property
+    @pulumi.getter(name="versionConfig")
+    def version_config(self) -> Optional[pulumi.Input['VersionConfigurationArgs']]:
+        return pulumi.get(self, "version_config")
+
+    @version_config.setter
+    def version_config(self, value: Optional[pulumi.Input['VersionConfigurationArgs']]):
+        pulumi.set(self, "version_config", value)
+
 
 class Cluster(pulumi.CustomResource):
     @overload
@@ -50,6 +62,7 @@ class Cluster(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  agents: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
                  master_nodes: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
+                 version_config: Optional[pulumi.Input[pulumi.InputType['VersionConfigurationArgs']]] = None,
                  __props__=None):
         """
         Create a Cluster resource with the given unique name, props, and options.
@@ -81,6 +94,7 @@ class Cluster(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  agents: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
                  master_nodes: Optional[pulumi.Input[Sequence[pulumi.Input[pulumi.InputType['NodeArgs']]]]] = None,
+                 version_config: Optional[pulumi.Input[pulumi.InputType['VersionConfigurationArgs']]] = None,
                  __props__=None):
         if opts is None:
             opts = pulumi.ResourceOptions()
@@ -97,6 +111,7 @@ class Cluster(pulumi.CustomResource):
             if master_nodes is None and not opts.urn:
                 raise TypeError("Missing required property 'master_nodes'")
             __props__.__dict__["master_nodes"] = master_nodes
+            __props__.__dict__["version_config"] = version_config
             __props__.__dict__["kubeconfig"] = None
         super(Cluster, __self__).__init__(
             'k3s:index:Cluster',
@@ -123,6 +138,7 @@ class Cluster(pulumi.CustomResource):
         __props__.__dict__["agents"] = None
         __props__.__dict__["kubeconfig"] = None
         __props__.__dict__["master_nodes"] = None
+        __props__.__dict__["version_config"] = None
         return Cluster(resource_name, opts=opts, __props__=__props__)
 
     @property
@@ -139,4 +155,9 @@ class Cluster(pulumi.CustomResource):
     @pulumi.getter(name="masterNodes")
     def master_nodes(self) -> pulumi.Output[Sequence['outputs.Node']]:
         return pulumi.get(self, "master_nodes")
+
+    @property
+    @pulumi.getter(name="versionConfig")
+    def version_config(self) -> pulumi.Output[Optional['outputs.VersionConfiguration']]:
+        return pulumi.get(self, "version_config")
 

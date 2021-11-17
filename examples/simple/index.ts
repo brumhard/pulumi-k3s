@@ -10,7 +10,10 @@ const cluster = new k3s.Cluster("mycluster", {
             privateKey: cfg.require("private_key"),
             user: "ubuntu",
         }
-    ]
+    ],
+    versionConfig: {
+        channel: "latest"
+    }
 });
 
 export const kubeconfig = cluster.kubeconfig;

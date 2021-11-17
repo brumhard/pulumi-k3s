@@ -10,6 +10,7 @@ from . import _utilities
 
 __all__ = [
     'NodeArgs',
+    'VersionConfigurationArgs',
 ]
 
 @pulumi.input_type
@@ -51,5 +52,34 @@ class NodeArgs:
     @user.setter
     def user(self, value: Optional[pulumi.Input[str]]):
         pulumi.set(self, "user", value)
+
+
+@pulumi.input_type
+class VersionConfigurationArgs:
+    def __init__(__self__, *,
+                 channel: Optional[pulumi.Input[str]] = None,
+                 version: Optional[pulumi.Input[str]] = None):
+        if channel is not None:
+            pulumi.set(__self__, "channel", channel)
+        if version is not None:
+            pulumi.set(__self__, "version", version)
+
+    @property
+    @pulumi.getter
+    def channel(self) -> Optional[pulumi.Input[str]]:
+        return pulumi.get(self, "channel")
+
+    @channel.setter
+    def channel(self, value: Optional[pulumi.Input[str]]):
+        pulumi.set(self, "channel", value)
+
+    @property
+    @pulumi.getter
+    def version(self) -> Optional[pulumi.Input[str]]:
+        return pulumi.get(self, "version")
+
+    @version.setter
+    def version(self, value: Optional[pulumi.Input[str]]):
+        pulumi.set(self, "version", value)
 
 

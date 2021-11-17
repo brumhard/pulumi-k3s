@@ -19,6 +19,9 @@
                 },
                 "kubeconfig": {
                     "type": "string"
+                },
+                "versionConfig": {
+                    "$ref": "#/types/k3s:index:VersionConfiguration"
                 }
             },
             "required": [
@@ -37,6 +40,9 @@
                     "items": {
                         "$ref": "#/types/k3s:index:Node"
                     }
+                },
+                "versionConfig": {
+                    "$ref": "#/types/k3s:index:VersionConfiguration"
                 }
             },
             "requiredInputs": [
@@ -45,6 +51,25 @@
         }
     },
     "types": {
+        "k3s:index:VersionConfiguration": {
+            "type": "object",
+            "properties": {
+                "version": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                }
+            },
+            "inputProperties": {
+                "version": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                }
+            }
+        },
         "k3s:index:Node": {
             "type": "object",
             "properties": {

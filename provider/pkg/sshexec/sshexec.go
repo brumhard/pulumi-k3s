@@ -28,6 +28,10 @@ func NewClient(address, user string, sshkeyPEM []byte) (*Client, error) {
 	return &Client{conn: conn}, nil
 }
 
+func NewClientFromSSH(conn *ssh.Client) *Client {
+	return &Client{conn: conn}
+}
+
 type Cmd struct {
 	Command string
 	Stdin   io.Reader

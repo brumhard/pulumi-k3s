@@ -3,15 +3,22 @@ package k3s
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"path"
 	"strings"
+	"text/template"
 
 	"github.com/brumhard/pulumi-k3s/provider/pkg/sshexec"
 	"github.com/pkg/errors"
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
-	getScript = "curl -sfL https://get.k3s.io"
-	useSudo   = true
+	getScript              = "curl -sfL https://get.k3s.io"
+	useSudo                = true
+	channelURL             = "https://update.k3s.io/v1-release/channels"
+	autoDeployManifestPath = "/var/lib/rancher/k3s/server/manifests"
 )
 
 var (
@@ -50,10 +57,26 @@ func (v VersionConfiguration) EnvSetting() string {
 	if v.Version != "" {
 		return fmt.Sprintf("INSTALL_K3S_VERSION='%s'", v.Version)
 	}
+
+	channel := "stable"
 	if v.Channel != "" {
-		return fmt.Sprintf("INSTALL_K3S_CHANNEL='%s'", v.Channel)
+		channel = v.Channel
 	}
-	return "INSTALL_K3S_CHANNEL='stable'"
+
+	return fmt.Sprintf("INSTALL_K3S_CHANNEL='%s'", channel)
+}
+
+func (v VersionConfiguration) YAMLValue() string {
+	if v.Version != "" {
+		return fmt.Sprintf("version: '%s'", v.Version)
+	}
+
+	channel := "stable"
+	if v.Channel != "" {
+		channel = v.Channel
+	}
+
+	return fmt.Sprintf("channel: '%s/%s'", channelURL, channel)
 }
 
 func MakeOrUpdateCluster(name string, cluster *Cluster) error {
@@ -61,12 +84,89 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
-	kubeconfig, err := setupNode(cluster.MasterNodes[0], cluster.VersionConfig)
+	sudoPrefix := ""
+	if useSudo {
+		sudoPrefix = "sudo "
+	}
+
+	kubeconfig, err := setupNode(cluster.MasterNodes[0], cluster.VersionConfig, sudoPrefix)
 	if err != nil {
 		return err
 	}
 
+	if err := setupAutoUpdate(cluster.MasterNodes[0], cluster.VersionConfig, sudoPrefix); err != nil {
+		return err
+	}
+
 	cluster.KubeConfig = kubeconfig
+
+	return nil
+}
+
+func setupAutoUpdate(node Node, versionConfig VersionConfiguration, sudoPrefix string) error {
+	signer, err := ssh.ParsePrivateKey([]byte(node.PrivateKey))
+	if err != nil {
+		return err
+	}
+
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", node.Host), &ssh.ClientConfig{
+		User:            node.User,
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
+	if err != nil {
+		return err
+	}
+
+	sftpClient, err := sftp.NewClient(conn)
+	if err != nil {
+		return err
+	}
+
+	sshClient := sshexec.NewClientFromSSH(conn)
+
+	tmpl, err := template.New("").Parse(upgradePlanManifestTemplate)
+	if err != nil {
+		return err
+	}
+
+	manifestBuffer := &bytes.Buffer{}
+	if err := tmpl.Execute(manifestBuffer, versionConfig.YAMLValue()); err != nil {
+		return err
+	}
+
+	filesMap := map[string]io.Reader{
+		"system-upgrade-controller.yaml": bytes.NewBuffer(systemUpgradeControllerManifest),
+		"upgradeplan.yaml":               manifestBuffer,
+	}
+
+	for name, content := range filesMap {
+		if err := scpCopyManifests(sftpClient, sshClient, content, name, sudoPrefix); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileReader io.Reader, fileName, sudoPrefix string) error {
+	tmpFilePath := path.Join("/tmp", fileName)
+
+	file, err := sftpClient.Create(tmpFilePath)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(file, fileReader); err != nil {
+		return err
+	}
+
+	mvCmd := &sshexec.Cmd{Command: fmt.Sprintf(
+		"%smv %s %s", sudoPrefix, tmpFilePath, path.Join(autoDeployManifestPath, fileName),
+	)}
+	if err := sshClient.Run(mvCmd); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -82,18 +182,13 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 // -> probably restart needed: sudo systemctl restart k3s
 // -> maybe problems with https://github.com/k3s-io/k3s/issues/3378
 // TODO: implement hardening guide https://rancher.com/docs/k3s/latest/en/security/hardening_guide/
-func setupNode(node Node, versionConfig VersionConfiguration) (string, error) {
+func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string) (string, error) {
 	env := []string{
 		versionConfig.EnvSetting(),
 		fmt.Sprintf(`INSTALL_K3S_EXEC='server --tls-san "%s"'`, node.Host),
 	}
 
 	installK3scommand := fmt.Sprintf("%s | %s sh -\n", getScript, strings.Join(env, " "))
-
-	sudoPrefix := ""
-	if useSudo {
-		sudoPrefix = "sudo "
-	}
 
 	getConfigcommand := fmt.Sprintf(sudoPrefix + "cat /etc/rancher/k3s/k3s.yaml")
 

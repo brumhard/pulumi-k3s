@@ -6,7 +6,6 @@ import (
 	"io"
 	"path"
 	"strings"
-	"text/template"
 
 	"github.com/brumhard/pulumi-k3s/provider/pkg/sshexec"
 	"github.com/pkg/errors"
@@ -28,17 +27,17 @@ var (
 
 // TODO: generate schema from this struct
 type Cluster struct {
-	MasterNodes   []Node               `json:"masterNodes"`
-	Agents        []Node               `json:"agents"`
-	KubeConfig    string               `json:"kubeconfig"`
-	VersionConfig VersionConfiguration `json:"versionConfig"`
+	MasterNodes   []Node               `json:"masterNodes,omitempty"`
+	Agents        []Node               `json:"agents,omitempty"`
+	KubeConfig    string               `json:"kubeconfig,omitempty"`
+	VersionConfig VersionConfiguration `json:"versionConfig,omitempty"`
 }
 
 // TODO: user and privatekey in provider as defaults (like region in openstack)
 type Node struct {
-	Host       string `json:"host"`
-	User       string `json:"user"`
-	PrivateKey string `json:"privateKey"`
+	Host       string `json:"host,omitempty"`
+	User       string `json:"user,omitempty"`
+	PrivateKey string `json:"privateKey,omitempty"`
 }
 
 
@@ -49,8 +48,8 @@ type Node struct {
 // For more information look here: https://rancher.com/docs/k3s/latest/en/upgrades/automated/
 // If none is set stable channel will be used.
 type VersionConfiguration struct {
-	Channel string `json:"channel"`
-	Version string `json:"version"`
+	Channel string `json:"channel,omitempty"`
+	Version string `json:"version,omitempty"`
 }
 
 func (v VersionConfiguration) EnvSetting() string {
@@ -106,7 +105,7 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 func setupAutoUpdate(node Node, versionConfig VersionConfiguration, sudoPrefix string) error {
 	signer, err := ssh.ParsePrivateKey([]byte(node.PrivateKey))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to parse privatekey for %s", node.Host)
 	}
 
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", node.Host), &ssh.ClientConfig{
@@ -115,24 +114,19 @@ func setupAutoUpdate(node Node, versionConfig VersionConfiguration, sudoPrefix s
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to establish ssh connection to %s", node.Host)
 	}
 
 	sftpClient, err := sftp.NewClient(conn)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to establish stfp connection to %s", node.Host)
 	}
 
 	sshClient := sshexec.NewClientFromSSH(conn)
 
-	tmpl, err := template.New("").Parse(upgradePlanManifestTemplate)
-	if err != nil {
-		return err
-	}
-
 	manifestBuffer := &bytes.Buffer{}
-	if err := tmpl.Execute(manifestBuffer, versionConfig.YAMLValue()); err != nil {
-		return err
+	if err := upgradePlanManifestTemplate.Execute(manifestBuffer, versionConfig.YAMLValue()); err != nil {
+		return errors.Wrapf(err, "failed to create upgradeplan")
 	}
 
 	filesMap := map[string]io.Reader{
@@ -154,18 +148,19 @@ func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileRe
 
 	file, err := sftpClient.Create(tmpFilePath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create tmp file at %s", tmpFilePath)
 	}
 
 	if _, err := io.Copy(file, fileReader); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to write to %s", tmpFilePath)
 	}
 
+	targetPath := path.Join(autoDeployManifestPath, fileName)
 	mvCmd := &sshexec.Cmd{Command: fmt.Sprintf(
-		"%smv %s %s", sudoPrefix, tmpFilePath, path.Join(autoDeployManifestPath, fileName),
+		"%smv %s %s", sudoPrefix, tmpFilePath, targetPath,
 	)}
 	if err := sshClient.Run(mvCmd); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to move from %s to %s", tmpFilePath, targetPath)
 	}
 
 	return nil
@@ -173,6 +168,7 @@ func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileRe
 
 // TODO: check if cluster is really working after intialization
 // TODO: run kube-bench on k3s cluster
+// TODO: implement hardening guide https://rancher.com/docs/k3s/latest/en/security/hardening_guide/
 // TODO: add option to setup cilium as CNI
 // https://docs.cilium.io/en/v1.9/gettingstarted/k3s/
 // should be enough to enable ebf filesystem and disable the cni backend and then install cilium with kubernetes provider
@@ -181,7 +177,6 @@ func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileRe
 // -> https://rancher.com/docs/k3s/latest/en/advanced/#configuring-containerd
 // -> probably restart needed: sudo systemctl restart k3s
 // -> maybe problems with https://github.com/k3s-io/k3s/issues/3378
-// TODO: implement hardening guide https://rancher.com/docs/k3s/latest/en/security/hardening_guide/
 func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string) (string, error) {
 	env := []string{
 		versionConfig.EnvSetting(),
@@ -197,7 +192,7 @@ func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string)
 	// TODO: make port somehow configurable
 	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", node.Host), node.User, []byte(node.PrivateKey))
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to establish ssh connection to %s", node.Host)
 	}
 
 	stdouterr := &bytes.Buffer{}
@@ -253,13 +248,13 @@ func DeleteCluster(cluster *Cluster) error {
 	for _, n := range cluster.MasterNodes {
 		// TODO: handle error if already gone
 		if err := executeOnNode(n, "/usr/local/bin/k3s-uninstall.sh"); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to uninstall master %s", n.Host)
 		}
 	}
 
 	for _, n := range cluster.Agents {
 		if err := executeOnNode(n, "/usr/local/bin/k3s-agent-uninstall.sh"); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to uninstall agent %s", n.Host)
 		}
 	}
 
@@ -269,7 +264,7 @@ func DeleteCluster(cluster *Cluster) error {
 func executeOnNode(node Node, commands ...string) error {
 	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", node.Host), node.User, []byte(node.PrivateKey))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to establish ssh connection to %s", node.Host)
 	}
 
 	for _, command := range commands {
@@ -279,7 +274,7 @@ func executeOnNode(node Node, commands ...string) error {
 			Stderr:  stderr,
 		})
 		if err != nil {
-			return errors.Wrap(errors.Wrap(err, stderr.String()), node.Host)
+			return errors.Wrap(err, stderr.String())
 		}
 	}
 

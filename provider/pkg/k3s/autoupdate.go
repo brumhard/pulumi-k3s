@@ -1,6 +1,9 @@
 package k3s
 
-import _ "embed"
+import (
+	_ "embed"
+	"text/template"
+)
 
 //go:generate curl -sSfLO https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml
 
@@ -9,5 +12,7 @@ var (
 	systemUpgradeControllerManifest []byte
 
 	//go:embed upgradeplan.yaml.tmpl
-	upgradePlanManifestTemplate string
+	upgradePlanManifestTemplateString string
+
+	upgradePlanManifestTemplate = template.Must(template.New("").Parse(upgradePlanManifestTemplateString))
 )

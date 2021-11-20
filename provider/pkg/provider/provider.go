@@ -18,8 +18,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/brumhard/pulumi-k3s/provider/pkg/k3s"
+	"github.com/pkg/errors"
 	"github.com/pulumi/pulumi/pkg/v3/resource/provider"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource/plugin"
@@ -59,6 +61,7 @@ func (k *k3sProvider) Check(ctx context.Context, req *pulumirpc.CheckRequest) (*
 	if ty != "k3s:index:Cluster" {
 		return nil, fmt.Errorf("Unknown resource type '%s'", ty)
 	}
+	// TODO: add validation here?
 	return &pulumirpc.CheckResponse{Inputs: req.News, Failures: nil}, nil
 }
 
@@ -70,25 +73,57 @@ func (k *k3sProvider) Diff(ctx context.Context, req *pulumirpc.DiffRequest) (*pu
 		return nil, fmt.Errorf("Unknown resource type '%s'", ty)
 	}
 
-	olds, err := plugin.UnmarshalProperties(req.GetOlds(), plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true})
+	// Retrieve the old state.
+	oldState, err := plugin.UnmarshalProperties(req.GetOlds(), plugin.MarshalOptions{
+		KeepUnknowns: true, SkipNulls: true, KeepSecrets: true,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	news, err := plugin.UnmarshalProperties(req.GetNews(), plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true})
+	// Extract old inputs from the `__inputs` field of the old state.
+	oldInputs := parseCheckpointObject(oldState)
+
+	// Get new resource inputs. The user is submitting these as an update.
+	newResInputs, err := plugin.UnmarshalProperties(req.GetNews(), plugin.MarshalOptions{
+		KeepUnknowns: true, SkipNulls: true, KeepSecrets: true,
+	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "diff failed because malformed resource inputs %v %v",
+			oldState, newResInputs)
 	}
 
-	d := olds.Diff(news)
-	changes := pulumirpc.DiffResponse_DIFF_NONE
-	if d.Changed("length") {
-		changes = pulumirpc.DiffResponse_DIFF_SOME
+	// Calculate the difference between old and new inputs.
+	d := oldInputs.Diff(newResInputs, func(key resource.PropertyKey) bool {
+		return strings.HasPrefix(string(key), "__")
+	})
+
+	if d == nil {
+		return &pulumirpc.DiffResponse{
+			Changes: pulumirpc.DiffResponse_DIFF_NONE,
+		}, nil
+	}
+
+	changes := make([]string, 0, len(d.Updates)+len(d.Adds)+len(d.Deletes))
+	for k := range d.Updates {
+		changes = append(changes, string(k))
+	}
+	for k := range d.Adds {
+		changes = append(changes, string(k))
+	}
+	for k := range d.Deletes {
+		changes = append(changes, string(k))
+	}
+
+	changeType := pulumirpc.DiffResponse_DIFF_NONE
+	if len(changes) > 0 {
+		changeType = pulumirpc.DiffResponse_DIFF_SOME
 	}
 
 	return &pulumirpc.DiffResponse{
-		Changes:  changes,
-		Replaces: []string{"length"},
+		Diffs:           changes,
+		Changes:         changeType,
+		HasDetailedDiff: false,
 	}, nil
 }
 
@@ -112,9 +147,18 @@ func (k *k3sProvider) Create(ctx context.Context, req *pulumirpc.CreateRequest) 
 		return nil, err
 	}
 
+	// Read the inputs to persist them into state.
+	newInputs, err := plugin.UnmarshalProperties(req.GetProperties(), plugin.MarshalOptions{
+		KeepUnknowns: true,
+		KeepSecrets:  true,
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "diff failed because malformed resource inputs")
+	}
+
 	outputProperties, err := plugin.MarshalProperties(
-		resource.NewPropertyMap(cluster),
-		plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true},
+		checkpointObject(newInputs, cluster),
+		plugin.MarshalOptions{KeepSecrets: true, SkipNulls: true},
 	)
 	if err != nil {
 		return nil, err
@@ -154,9 +198,18 @@ func (k *k3sProvider) Update(ctx context.Context, req *pulumirpc.UpdateRequest) 
 		return nil, err
 	}
 
+	// Read the inputs to persist them into state.
+	newInputs, err := plugin.UnmarshalProperties(req.GetNews(), plugin.MarshalOptions{
+		KeepUnknowns: true,
+		KeepSecrets:  true,
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "diff failed because malformed resource inputs")
+	}
+
 	outputProperties, err := plugin.MarshalProperties(
-		resource.NewPropertyMap(cluster),
-		plugin.MarshalOptions{KeepUnknowns: true, SkipNulls: true},
+		checkpointObject(newInputs, cluster),
+		plugin.MarshalOptions{KeepSecrets: true, SkipNulls: true},
 	)
 	if err != nil {
 		return nil, err
@@ -267,4 +320,20 @@ func (k *k3sProvider) GetSchema(ctx context.Context, req *pulumirpc.GetSchemaReq
 func (k *k3sProvider) Cancel(context.Context, *pbempty.Empty) (*pbempty.Empty, error) {
 	// TODO
 	return &pbempty.Empty{}, nil
+}
+
+// checkpointObject puts inputs in the `__inputs` field of the state.
+func checkpointObject(inputs resource.PropertyMap, outputs interface{}) resource.PropertyMap {
+	object := resource.NewPropertyMap(outputs)
+	object["__inputs"] = resource.MakeSecret(resource.NewObjectProperty(inputs))
+	return object
+}
+
+// parseCheckpointObject returns inputs that are saved in the `__inputs` field of the state.
+func parseCheckpointObject(obj resource.PropertyMap) resource.PropertyMap {
+	if inputs, ok := obj["__inputs"]; ok {
+		return inputs.ObjectValue()
+	}
+
+	return nil
 }

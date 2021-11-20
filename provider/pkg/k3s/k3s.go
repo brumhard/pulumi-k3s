@@ -40,6 +40,12 @@ type Node struct {
 	PrivateKey string `json:"privateKey,omitempty"`
 }
 
+// TODO: implement (put this into args section for master server?)
+type Master struct {
+	Node
+	DisabledComponents []string // https://rancher.com/docs/k3s/latest/en/installation/install-options/server-config/#kubernetes-components
+	FlannelBackend     string   //--flannel-backend
+}
 
 // VersionConfiguration resembles a K3s version. This can either be a release channel or a static version.
 // If both are set the defined version will be preferred.
@@ -93,6 +99,7 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
+	// FIXME: on initial setup: failed to move from /tmp/system-upgrade-controller.yaml to /var/lib/rancher/k3s/server/manifests/system-upgrade-controller.yaml: Process exited with status 1
 	if err := setupAutoUpdate(cluster.MasterNodes[0], cluster.VersionConfig, sudoPrefix); err != nil {
 		return err
 	}

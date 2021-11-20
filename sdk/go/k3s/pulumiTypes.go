@@ -209,10 +209,11 @@ func (o VersionConfigurationOutput) ToVersionConfigurationPtrOutput() VersionCon
 }
 
 func (o VersionConfigurationOutput) ToVersionConfigurationPtrOutputWithContext(ctx context.Context) VersionConfigurationPtrOutput {
-	return o.ApplyT(func(v VersionConfiguration) *VersionConfiguration {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v VersionConfiguration) *VersionConfiguration {
 		return &v
 	}).(VersionConfigurationPtrOutput)
 }
+
 func (o VersionConfigurationOutput) Channel() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v VersionConfiguration) *string { return v.Channel }).(pulumi.StringPtrOutput)
 }
@@ -236,7 +237,13 @@ func (o VersionConfigurationPtrOutput) ToVersionConfigurationPtrOutputWithContex
 }
 
 func (o VersionConfigurationPtrOutput) Elem() VersionConfigurationOutput {
-	return o.ApplyT(func(v *VersionConfiguration) VersionConfiguration { return *v }).(VersionConfigurationOutput)
+	return o.ApplyT(func(v *VersionConfiguration) VersionConfiguration {
+		if v != nil {
+			return *v
+		}
+		var ret VersionConfiguration
+		return ret
+	}).(VersionConfigurationOutput)
 }
 
 func (o VersionConfigurationPtrOutput) Channel() pulumi.StringPtrOutput {
@@ -258,6 +265,10 @@ func (o VersionConfigurationPtrOutput) Version() pulumi.StringPtrOutput {
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*NodeInput)(nil)).Elem(), NodeArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*NodeArrayInput)(nil)).Elem(), NodeArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*VersionConfigurationInput)(nil)).Elem(), VersionConfigurationArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*VersionConfigurationPtrInput)(nil)).Elem(), VersionConfigurationArgs{})
 	pulumi.RegisterOutputType(NodeOutput{})
 	pulumi.RegisterOutputType(NodeArrayOutput{})
 	pulumi.RegisterOutputType(VersionConfigurationOutput{})

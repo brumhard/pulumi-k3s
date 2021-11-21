@@ -103,14 +103,21 @@ func (k *K8sClient) CreateOrUpdateFromFile(ctx context.Context, fileBytes []byte
 				dr = k.dyn.Resource(mapping.Resource)
 			}
 
+			currentObj, err := dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					_, err = dr.Create(ctx, &obj, metav1.CreateOptions{
+						FieldManager: "pulumi-k3s",
+					})
+				}
+				return err
+			}
+
+			obj.SetResourceVersion(currentObj.GetResourceVersion())
 			_, err = dr.Update(ctx, &obj, metav1.UpdateOptions{
 				FieldManager: "pulumi-k3s",
 			})
-			if apierrors.IsNotFound(err) {
-				_, err = dr.Create(ctx, &obj, metav1.CreateOptions{
-					FieldManager: "pulumi-k3s",
-				})
-			}
+
 			return err
 		})
 		if err != nil {

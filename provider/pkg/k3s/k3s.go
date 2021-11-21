@@ -25,7 +25,6 @@ var (
 	ErrOutputOnly       = errors.New("property is only for output")
 )
 
-// TODO: generate schema from this struct
 type Cluster struct {
 	MasterNodes   []Node               `json:"masterNodes,omitempty"`
 	Agents        []Node               `json:"agents,omitempty"`
@@ -33,7 +32,6 @@ type Cluster struct {
 	VersionConfig VersionConfiguration `json:"versionConfig,omitempty"`
 }
 
-// TODO: user and privatekey in provider as defaults (like region in openstack)
 type Node struct {
 	Host       string `json:"host,omitempty"`
 	User       string `json:"user,omitempty"`
@@ -152,17 +150,6 @@ func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileRe
 	return nil
 }
 
-// TODO: check if cluster is really working after intialization
-// TODO: run kube-bench on k3s cluster
-// TODO: implement hardening guide https://rancher.com/docs/k3s/latest/en/security/hardening_guide/
-// TODO: add option to setup cilium as CNI
-// https://docs.cilium.io/en/v1.9/gettingstarted/k3s/
-// should be enough to enable ebf filesystem and disable the cni backend and then install cilium with kubernetes provider
-// -> enableEbpf option?
-// TODO: add option setup gVisor with containerd
-// -> https://rancher.com/docs/k3s/latest/en/advanced/#configuring-containerd
-// -> probably restart needed: sudo systemctl restart k3s
-// -> maybe problems with https://github.com/k3s-io/k3s/issues/3378
 func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string) (string, error) {
 	env := []string{
 		versionConfig.EnvSetting(),

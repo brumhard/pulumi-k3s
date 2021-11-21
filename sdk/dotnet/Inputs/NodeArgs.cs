@@ -12,6 +12,14 @@ namespace Pulumi.K3s.Inputs
 
     public sealed class NodeArgs : Pulumi.ResourceArgs
     {
+        [Input("args")]
+        private InputList<string>? _args;
+        public InputList<string> Args
+        {
+            get => _args ?? (_args = new InputList<string>());
+            set => _args = value;
+        }
+
         [Input("host", required: true)]
         public Input<string> Host { get; set; } = null!;
 

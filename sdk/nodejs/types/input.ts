@@ -5,6 +5,7 @@ import * as pulumi from "@pulumi/pulumi";
 import { input as inputs, output as outputs } from "../types";
 
 export interface NodeArgs {
+    args?: pulumi.Input<pulumi.Input<string>[]>;
     host: pulumi.Input<string>;
     privateKey: pulumi.Input<string>;
     user?: pulumi.Input<string>;

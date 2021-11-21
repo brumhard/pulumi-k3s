@@ -35,9 +35,12 @@ class Node(dict):
     def __init__(__self__, *,
                  host: str,
                  private_key: str,
+                 args: Optional[Sequence[str]] = None,
                  user: Optional[str] = None):
         pulumi.set(__self__, "host", host)
         pulumi.set(__self__, "private_key", private_key)
+        if args is not None:
+            pulumi.set(__self__, "args", args)
         if user is None:
             user = 'root'
         if user is not None:
@@ -52,6 +55,11 @@ class Node(dict):
     @pulumi.getter(name="privateKey")
     def private_key(self) -> str:
         return pulumi.get(self, "private_key")
+
+    @property
+    @pulumi.getter
+    def args(self) -> Optional[Sequence[str]]:
+        return pulumi.get(self, "args")
 
     @property
     @pulumi.getter

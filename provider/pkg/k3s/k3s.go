@@ -36,13 +36,10 @@ type Node struct {
 	Host       string `json:"host,omitempty"`
 	User       string `json:"user,omitempty"`
 	PrivateKey string `json:"privateKey,omitempty"`
-}
-
-// TODO: implement (put this into args section for master server?)
-type Master struct {
-	Node
-	DisabledComponents []string // https://rancher.com/docs/k3s/latest/en/installation/install-options/server-config/#kubernetes-components
-	FlannelBackend     string   //--flannel-backend
+	// Args define CLI arguments for k3s server or k3s agent respectively.
+	// The passed args won't be validated and just passed to the installation instructions of the node.
+	// An example value for the master node would look like []string{"--disable=traefik"}.
+	Args []string `json:"args,omitempty"`
 }
 
 // VersionConfiguration resembles a K3s version. This can either be a release channel or a static version.
@@ -153,7 +150,7 @@ func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileRe
 func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string) (string, error) {
 	env := []string{
 		versionConfig.EnvSetting(),
-		fmt.Sprintf(`INSTALL_K3S_EXEC='server --tls-san "%s"'`, node.Host),
+		fmt.Sprintf(`INSTALL_K3S_EXEC='server --tls-san="%s" %s'`, node.Host, strings.Join(node.Args, " ")),
 	}
 
 	installK3scommand := fmt.Sprintf("%s | %s sh -\n", getScript, strings.Join(env, " "))

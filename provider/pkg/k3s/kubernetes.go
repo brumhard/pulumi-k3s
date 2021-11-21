@@ -6,22 +6,31 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/apimachinery/pkg/util/wait"
 	test "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
-	memory "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/retry"
 )
 
+// TODO: replace with meta.ResettableRESTMapper as soon as available (currently only in master)
+type ResettableRESTMapper interface {
+	meta.RESTMapper
+	Reset()
+}
+
 type K8sClient struct {
-	mapper meta.RESTMapper
+	mapper ResettableRESTMapper
 	dyn    dynamic.Interface
 }
 
@@ -73,26 +82,37 @@ func (k *K8sClient) CreateOrUpdateFromFile(ctx context.Context, fileBytes []byte
 			return err
 		}
 
-		mapping, err := k.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-		if err != nil {
-			return err
-		}
+		err = retry.OnError(wait.Backoff{
+			Duration: 5 * time.Second,
+			Factor:   2,
+			Steps:    10,
+			Cap:      2 * time.Minute,
+		}, func(e error) bool {
+			k.mapper.Reset()
+			return true //apierrors.IsConflict(err) || meta.IsNoMatchError(err)
+		}, func() error {
+			mapping, err := k.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+			if err != nil {
+				return err
+			}
 
-		var dr dynamic.ResourceInterface
-		if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
-			dr = k.dyn.Resource(mapping.Resource).Namespace(obj.GetNamespace())
-		} else {
-			dr = k.dyn.Resource(mapping.Resource)
-		}
+			var dr dynamic.ResourceInterface
+			if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+				dr = k.dyn.Resource(mapping.Resource).Namespace(obj.GetNamespace())
+			} else {
+				dr = k.dyn.Resource(mapping.Resource)
+			}
 
-		_, err = dr.Update(ctx, &obj, metav1.UpdateOptions{
-			FieldManager: "pulumi-k3s",
-		})
-		if apierrors.IsNotFound(err) {
-			_, err = dr.Create(ctx, &obj, metav1.CreateOptions{
+			_, err = dr.Update(ctx, &obj, metav1.UpdateOptions{
 				FieldManager: "pulumi-k3s",
 			})
-		}
+			if apierrors.IsNotFound(err) {
+				_, err = dr.Create(ctx, &obj, metav1.CreateOptions{
+					FieldManager: "pulumi-k3s",
+				})
+			}
+			return err
+		})
 		if err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package k3s
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"path"
@@ -10,7 +11,6 @@ import (
 	"github.com/brumhard/pulumi-k3s/provider/pkg/sshexec"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -99,8 +99,7 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
-	// FIXME: on initial setup: failed to move from /tmp/system-upgrade-controller.yaml to /var/lib/rancher/k3s/server/manifests/system-upgrade-controller.yaml: Process exited with status 1
-	if err := setupAutoUpdate(cluster.MasterNodes[0], cluster.VersionConfig, sudoPrefix); err != nil {
+	if err := setupAutoUpdate(kubeconfig, cluster.VersionConfig); err != nil {
 		return err
 	}
 
@@ -109,47 +108,27 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	return nil
 }
 
-func setupAutoUpdate(node Node, versionConfig VersionConfiguration, sudoPrefix string) error {
-	signer, err := ssh.ParsePrivateKey([]byte(node.PrivateKey))
+func setupAutoUpdate(kubeconfig string, versionConfig VersionConfiguration) error {
+	k8sClient, err := newK8sClient(kubeconfig)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse privatekey for %s", node.Host)
+		return errors.Wrap(err, "failed to create client for kubernetes cluster")
 	}
-
-	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", node.Host), &ssh.ClientConfig{
-		User:            node.User,
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	})
-	if err != nil {
-		return errors.Wrapf(err, "failed to establish ssh connection to %s", node.Host)
-	}
-
-	sftpClient, err := sftp.NewClient(conn)
-	if err != nil {
-		return errors.Wrapf(err, "failed to establish stfp connection to %s", node.Host)
-	}
-
-	sshClient := sshexec.NewClientFromSSH(conn)
 
 	manifestBuffer := &bytes.Buffer{}
 	if err := upgradePlanManifestTemplate.Execute(manifestBuffer, versionConfig.YAMLValue()); err != nil {
 		return errors.Wrapf(err, "failed to create upgradeplan")
 	}
 
-	filesMap := map[string]io.Reader{
-		"system-upgrade-controller.yaml": bytes.NewBuffer(systemUpgradeControllerManifest),
-		"upgradeplan.yaml":               manifestBuffer,
-	}
-
-	for name, content := range filesMap {
-		if err := scpCopyManifests(sftpClient, sshClient, content, name, sudoPrefix); err != nil {
-			return err
+	for _, content := range [][]byte{systemUpgradeControllerManifest, manifestBuffer.Bytes()} {
+		if err := k8sClient.CreateOrUpdateFromFile(context.Background(), content); err != nil {
+			return errors.Wrap(err, "failed to apply k3s autoupdate objects")
 		}
 	}
 
 	return nil
 }
 
+// NOTE: kept in case it's needed for containerd
 func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileReader io.Reader, fileName, sudoPrefix string) error {
 	tmpFilePath := path.Join("/tmp", fileName)
 

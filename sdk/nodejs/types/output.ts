@@ -5,6 +5,7 @@ import * as pulumi from "@pulumi/pulumi";
 import { input as inputs, output as outputs } from "../types";
 
 export interface Node {
+    args?: string[];
     host: string;
     privateKey: string;
     user?: string;

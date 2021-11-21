@@ -18,9 +18,12 @@ class NodeArgs:
     def __init__(__self__, *,
                  host: pulumi.Input[str],
                  private_key: pulumi.Input[str],
+                 args: Optional[pulumi.Input[Sequence[pulumi.Input[str]]]] = None,
                  user: Optional[pulumi.Input[str]] = None):
         pulumi.set(__self__, "host", host)
         pulumi.set(__self__, "private_key", private_key)
+        if args is not None:
+            pulumi.set(__self__, "args", args)
         if user is None:
             user = 'root'
         if user is not None:
@@ -43,6 +46,15 @@ class NodeArgs:
     @private_key.setter
     def private_key(self, value: pulumi.Input[str]):
         pulumi.set(self, "private_key", value)
+
+    @property
+    @pulumi.getter
+    def args(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[str]]]]:
+        return pulumi.get(self, "args")
+
+    @args.setter
+    def args(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[str]]]]):
+        pulumi.set(self, "args", value)
 
     @property
     @pulumi.getter

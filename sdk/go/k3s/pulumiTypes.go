@@ -11,9 +11,10 @@ import (
 )
 
 type Node struct {
-	Host       string  `pulumi:"host"`
-	PrivateKey string  `pulumi:"privateKey"`
-	User       *string `pulumi:"user"`
+	Args       []string `pulumi:"args"`
+	Host       string   `pulumi:"host"`
+	PrivateKey string   `pulumi:"privateKey"`
+	User       *string  `pulumi:"user"`
 }
 
 // NodeInput is an input type that accepts NodeArgs and NodeOutput values.
@@ -28,9 +29,10 @@ type NodeInput interface {
 }
 
 type NodeArgs struct {
-	Host       pulumi.StringInput    `pulumi:"host"`
-	PrivateKey pulumi.StringInput    `pulumi:"privateKey"`
-	User       pulumi.StringPtrInput `pulumi:"user"`
+	Args       pulumi.StringArrayInput `pulumi:"args"`
+	Host       pulumi.StringInput      `pulumi:"host"`
+	PrivateKey pulumi.StringInput      `pulumi:"privateKey"`
+	User       pulumi.StringPtrInput   `pulumi:"user"`
 }
 
 func (NodeArgs) ElementType() reflect.Type {
@@ -82,6 +84,10 @@ func (o NodeOutput) ToNodeOutput() NodeOutput {
 
 func (o NodeOutput) ToNodeOutputWithContext(ctx context.Context) NodeOutput {
 	return o
+}
+
+func (o NodeOutput) Args() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v Node) []string { return v.Args }).(pulumi.StringArrayOutput)
 }
 
 func (o NodeOutput) Host() pulumi.StringOutput {

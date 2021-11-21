@@ -13,18 +13,22 @@ namespace Pulumi.K3s.Outputs
     [OutputType]
     public sealed class Node
     {
+        public readonly ImmutableArray<string> Args;
         public readonly string Host;
         public readonly string PrivateKey;
         public readonly string? User;
 
         [OutputConstructor]
         private Node(
+            ImmutableArray<string> args,
+
             string host,
 
             string privateKey,
 
             string? user)
         {
+            Args = args;
             Host = host;
             PrivateKey = privateKey;
             User = user;

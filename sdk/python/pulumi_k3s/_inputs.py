@@ -10,6 +10,7 @@ from . import _utilities
 
 __all__ = [
     'NodeArgs',
+    'RuntimeConfigurationArgs',
     'VersionConfigurationArgs',
 ]
 
@@ -19,11 +20,14 @@ class NodeArgs:
                  host: pulumi.Input[str],
                  private_key: pulumi.Input[str],
                  args: Optional[pulumi.Input[Sequence[pulumi.Input[str]]]] = None,
+                 runtime_config: Optional[pulumi.Input['RuntimeConfigurationArgs']] = None,
                  user: Optional[pulumi.Input[str]] = None):
         pulumi.set(__self__, "host", host)
         pulumi.set(__self__, "private_key", private_key)
         if args is not None:
             pulumi.set(__self__, "args", args)
+        if runtime_config is not None:
+            pulumi.set(__self__, "runtime_config", runtime_config)
         if user is None:
             user = 'root'
         if user is not None:
@@ -57,6 +61,15 @@ class NodeArgs:
         pulumi.set(self, "args", value)
 
     @property
+    @pulumi.getter(name="runtimeConfig")
+    def runtime_config(self) -> Optional[pulumi.Input['RuntimeConfigurationArgs']]:
+        return pulumi.get(self, "runtime_config")
+
+    @runtime_config.setter
+    def runtime_config(self, value: Optional[pulumi.Input['RuntimeConfigurationArgs']]):
+        pulumi.set(self, "runtime_config", value)
+
+    @property
     @pulumi.getter
     def user(self) -> Optional[pulumi.Input[str]]:
         return pulumi.get(self, "user")
@@ -64,6 +77,23 @@ class NodeArgs:
     @user.setter
     def user(self, value: Optional[pulumi.Input[str]]):
         pulumi.set(self, "user", value)
+
+
+@pulumi.input_type
+class RuntimeConfigurationArgs:
+    def __init__(__self__, *,
+                 enable_g_visor: Optional[pulumi.Input[bool]] = None):
+        if enable_g_visor is not None:
+            pulumi.set(__self__, "enable_g_visor", enable_g_visor)
+
+    @property
+    @pulumi.getter(name="enableGVisor")
+    def enable_g_visor(self) -> Optional[pulumi.Input[bool]]:
+        return pulumi.get(self, "enable_g_visor")
+
+    @enable_g_visor.setter
+    def enable_g_visor(self, value: Optional[pulumi.Input[bool]]):
+        pulumi.set(self, "enable_g_visor", value)
 
 
 @pulumi.input_type

@@ -16,6 +16,7 @@ namespace Pulumi.K3s.Outputs
         public readonly ImmutableArray<string> Args;
         public readonly string Host;
         public readonly string PrivateKey;
+        public readonly Outputs.RuntimeConfiguration? RuntimeConfig;
         public readonly string? User;
 
         [OutputConstructor]
@@ -26,11 +27,14 @@ namespace Pulumi.K3s.Outputs
 
             string privateKey,
 
+            Outputs.RuntimeConfiguration? runtimeConfig,
+
             string? user)
         {
             Args = args;
             Host = host;
             PrivateKey = privateKey;
+            RuntimeConfig = runtimeConfig;
             User = user;
         }
     }

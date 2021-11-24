@@ -8,7 +8,12 @@ export interface Node {
     args?: string[];
     host: string;
     privateKey: string;
+    runtimeConfig?: outputs.RuntimeConfiguration;
     user?: string;
+}
+
+export interface RuntimeConfiguration {
+    enableGVisor?: boolean;
 }
 
 export interface VersionConfiguration {

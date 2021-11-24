@@ -10,12 +10,16 @@ const cluster = new k3s.Cluster("mycluster", {
             privateKey: cfg.requireSecret("private_key"),
             user: "ubuntu",
             args: [
-                "--disable=traefik"
-            ]
+                "--flannel-backend=none",
+                "--disable-network-policy"
+            ],
+            runtimeConfig: {
+                enableGVisor: true
+            }
         }
     ],
     versionConfig: {
-        version: "v1.21.5+k3s2"
+        version: "v1.22.3+k3s1"
     }
 });
 

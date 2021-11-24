@@ -8,7 +8,12 @@ export interface NodeArgs {
     args?: pulumi.Input<pulumi.Input<string>[]>;
     host: pulumi.Input<string>;
     privateKey: pulumi.Input<string>;
+    runtimeConfig?: pulumi.Input<inputs.RuntimeConfigurationArgs>;
     user?: pulumi.Input<string>;
+}
+
+export interface RuntimeConfigurationArgs {
+    enableGVisor?: pulumi.Input<boolean>;
 }
 
 export interface VersionConfigurationArgs {

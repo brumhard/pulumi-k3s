@@ -26,6 +26,9 @@ namespace Pulumi.K3s.Inputs
         [Input("privateKey", required: true)]
         public Input<string> PrivateKey { get; set; } = null!;
 
+        [Input("runtimeConfig")]
+        public Input<Inputs.RuntimeConfigurationArgs>? RuntimeConfig { get; set; }
+
         [Input("user")]
         public Input<string>? User { get; set; }
 

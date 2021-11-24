@@ -7,9 +7,11 @@ import pulumi
 import pulumi.runtime
 from typing import Any, Mapping, Optional, Sequence, Union, overload
 from . import _utilities
+from . import outputs
 
 __all__ = [
     'Node',
+    'RuntimeConfiguration',
     'VersionConfiguration',
 ]
 
@@ -20,6 +22,8 @@ class Node(dict):
         suggest = None
         if key == "privateKey":
             suggest = "private_key"
+        elif key == "runtimeConfig":
+            suggest = "runtime_config"
 
         if suggest:
             pulumi.log.warn(f"Key '{key}' not found in Node. Access the value via the '{suggest}' property getter instead.")
@@ -36,11 +40,14 @@ class Node(dict):
                  host: str,
                  private_key: str,
                  args: Optional[Sequence[str]] = None,
+                 runtime_config: Optional['outputs.RuntimeConfiguration'] = None,
                  user: Optional[str] = None):
         pulumi.set(__self__, "host", host)
         pulumi.set(__self__, "private_key", private_key)
         if args is not None:
             pulumi.set(__self__, "args", args)
+        if runtime_config is not None:
+            pulumi.set(__self__, "runtime_config", runtime_config)
         if user is None:
             user = 'root'
         if user is not None:
@@ -62,9 +69,44 @@ class Node(dict):
         return pulumi.get(self, "args")
 
     @property
+    @pulumi.getter(name="runtimeConfig")
+    def runtime_config(self) -> Optional['outputs.RuntimeConfiguration']:
+        return pulumi.get(self, "runtime_config")
+
+    @property
     @pulumi.getter
     def user(self) -> Optional[str]:
         return pulumi.get(self, "user")
+
+
+@pulumi.output_type
+class RuntimeConfiguration(dict):
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "enableGVisor":
+            suggest = "enable_g_visor"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in RuntimeConfiguration. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        RuntimeConfiguration.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        RuntimeConfiguration.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 enable_g_visor: Optional[bool] = None):
+        if enable_g_visor is not None:
+            pulumi.set(__self__, "enable_g_visor", enable_g_visor)
+
+    @property
+    @pulumi.getter(name="enableGVisor")
+    def enable_g_visor(self) -> Optional[bool]:
+        return pulumi.get(self, "enable_g_visor")
 
 
 @pulumi.output_type

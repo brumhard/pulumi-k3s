@@ -11,6 +11,7 @@ import (
 	"github.com/brumhard/pulumi-k3s/provider/pkg/sshexec"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -18,6 +19,7 @@ const (
 	useSudo                = true
 	channelURL             = "https://update.k3s.io/v1-release/channels"
 	autoDeployManifestPath = "/var/lib/rancher/k3s/server/manifests"
+	containerdTemplatePath = "/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl"
 )
 
 var (
@@ -39,7 +41,8 @@ type Node struct {
 	// Args define CLI arguments for k3s server or k3s agent respectively.
 	// The passed args won't be validated and just passed to the installation instructions of the node.
 	// An example value for the master node would look like []string{"--disable=traefik"}.
-	Args []string `json:"args,omitempty"`
+	Args          []string      `json:"args,omitempty"`
+	RuntimeConfig RuntimeConfig `json:"runtimeConfig,omitempty"`
 }
 
 // VersionConfiguration resembles a K3s version. This can either be a release channel or a static version.
@@ -79,6 +82,10 @@ func (v VersionConfiguration) YAMLValue() string {
 	return fmt.Sprintf("channel: '%s/%s'", channelURL, channel)
 }
 
+type RuntimeConfig struct {
+	EnableGVisor bool `json:"enableGVisor,omitempty"`
+}
+
 func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	if err := cluster.Validate(); err != nil {
 		return err
@@ -94,11 +101,57 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
+	if cluster.MasterNodes[0].RuntimeConfig.EnableGVisor {
+		setupGVisor(cluster.MasterNodes[0], sudoPrefix)
+	}
+
 	if err := setupAutoUpdate(kubeconfig, cluster.VersionConfig); err != nil {
 		return err
 	}
 
 	cluster.KubeConfig = kubeconfig
+
+	return nil
+}
+
+func setupGVisor(node Node, sudoPrefix string) error {
+	signer, err := ssh.ParsePrivateKey([]byte(node.PrivateKey))
+	if err != nil {
+		return err
+	}
+
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", node.Host), &ssh.ClientConfig{
+		User:            node.User,
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
+	if err != nil {
+		return err
+	}
+
+	sftpClient, err := sftp.NewClient(conn)
+	if err != nil {
+		return err
+	}
+
+	sshClient := sshexec.NewClientFromSSH(conn)
+
+	// TODO: add scpCopy to sshexec client to not initialize multiple clients
+	if err := scpCopy(sftpClient, sshClient, bytes.NewReader(containerdConfig), containerdTemplatePath, sudoPrefix); err != nil {
+		return err
+	}
+
+	// TODO: add remove script for gvisor
+	gvisorInstallPath := "/root/gvisor_install.sh"
+	if err := scpCopy(sftpClient, sshClient, bytes.NewReader(gvisorInstall), gvisorInstallPath, sudoPrefix); err != nil {
+		return err
+	}
+
+	for _, cmd := range []string{fmt.Sprintf("%sbash %s", sudoPrefix, gvisorInstallPath), sudoPrefix + "systemctl restart k3s.service"} {
+		if err := sshClient.Run(&sshexec.Cmd{Command: cmd}); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -123,9 +176,8 @@ func setupAutoUpdate(kubeconfig string, versionConfig VersionConfiguration) erro
 	return nil
 }
 
-// NOTE: kept in case it's needed for containerd
-func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileReader io.Reader, fileName, sudoPrefix string) error {
-	tmpFilePath := path.Join("/tmp", fileName)
+func scpCopy(sftpClient *sftp.Client, sshClient *sshexec.Client, fileReader io.Reader, dest string, sudoPrefix string) error {
+	tmpFilePath := path.Join("/tmp", path.Base(dest))
 
 	file, err := sftpClient.Create(tmpFilePath)
 	if err != nil {
@@ -136,12 +188,11 @@ func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileRe
 		return errors.Wrapf(err, "failed to write to %s", tmpFilePath)
 	}
 
-	targetPath := path.Join(autoDeployManifestPath, fileName)
 	mvCmd := &sshexec.Cmd{Command: fmt.Sprintf(
-		"%smv %s %s", sudoPrefix, tmpFilePath, targetPath,
+		"%smv %s %s", sudoPrefix, tmpFilePath, dest,
 	)}
 	if err := sshClient.Run(mvCmd); err != nil {
-		return errors.Wrapf(err, "failed to move from %s to %s", tmpFilePath, targetPath)
+		return errors.Wrapf(err, "failed to move from %s to %s", tmpFilePath, dest)
 	}
 
 	return nil

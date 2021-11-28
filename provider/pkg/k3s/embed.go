@@ -17,6 +17,8 @@ var (
 	//go:embed gvisor_install.sh
 	gvisorInstall []byte
 
+	gvisorUninstall = "rm -rf /usr/local/bin/runsc /usr/local/bin/containerd-shim-runsc-v1"
+
 	//go:embed runtimeclass.yaml
 	gvisorRuntimeClass []byte
 

@@ -32,6 +32,26 @@ metadata:
 	}
 }
 
+func Test_K8sClient_delete(t *testing.T) {
+	k8sClient := &K8sClient{
+		dyn:    fakedynamic.NewSimpleDynamicClient(scheme.Scheme),
+		mapper: testResettableRESTMapper{testrestmapper.TestOnlyStaticRESTMapper(scheme.Scheme)},
+	}
+
+	exampleNS := []byte(`---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: system-upgrade`)
+	err := k8sClient.CreateOrUpdateFromFile(context.Background(), exampleNS)
+	assert.NoError(t, err)
+
+	for i := 0; i < 2; i++ {
+		err := k8sClient.DeleteIfExistsFromFile(context.Background(), exampleNS)
+		assert.NoError(t, err)
+	}
+}
+
 type testResettableRESTMapper struct {
 	meta.RESTMapper
 }

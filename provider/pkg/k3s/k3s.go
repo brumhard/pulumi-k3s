@@ -96,9 +96,14 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	}
 
 	if cluster.MasterNodes[0].RuntimeConfig.EnableGVisor {
-		setupGVisor(cluster.MasterNodes[0], kubeconfig)
+		if err := setupGVisor(cluster.MasterNodes[0], kubeconfig); err != nil {
+			return err
+		}
+	} else {
+		if err := uninstallGVisor(cluster.MasterNodes[0], kubeconfig); err != nil {
+			return err
+		}
 	}
-	// TODO: implement RemoveGVisorIfExists
 
 	cluster.KubeConfig = kubeconfig
 
@@ -130,6 +135,32 @@ func setupGVisor(node Node, kubeconfig string) error {
 
 	if err := k8sClient.CreateOrUpdateFromFile(context.TODO(), gvisorRuntimeClass); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func uninstallGVisor(node Node, kubeconfig string) error {
+	k8sClient, err := newK8sClient(kubeconfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create client for kubernetes cluster")
+	}
+
+	if err := k8sClient.DeleteIfExistsFromFile(context.TODO(), gvisorRuntimeClass); err != nil {
+		return err
+	}
+
+	remoteExecutor, err := NewExecutorForNode(node, useSudo)
+	if err != nil {
+		return err
+	}
+
+	for _, cmd := range []string{
+		gvisorUninstall, fmt.Sprintf("rm %s", containerdTemplatePath), "systemctl restart k3s.service",
+	} {
+		if _, err := remoteExecutor.SudoCombinedOutput(cmd); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -210,37 +241,38 @@ func (c Cluster) Validate() error {
 }
 
 func DeleteCluster(cluster *Cluster) error {
-	// TODO: remove gvisor
 	for _, n := range cluster.MasterNodes {
-		// TODO: handle error if already gone
-		if err := executeScriptIfExistsOnNode(n, "/usr/local/bin/k3s-uninstall.sh"); err != nil {
-			return errors.Wrapf(err, "failed to uninstall master")
+		if err := removeNode(n); err != nil {
+			return err
 		}
 	}
 
-	for _, n := range cluster.Agents {
-		if err := executeScriptIfExistsOnNode(n, "/usr/local/bin/k3s-agent-uninstall.sh"); err != nil {
-			return errors.Wrapf(err, "failed to uninstall agent")
-		}
-	}
+	// for _, n := range cluster.Agents {
+	// 	if err := executeScriptIfExistsOnNode(
+	// 		n, "sh /usr/local/bin/k3s-agent-uninstall.sh", gvisorUninstall,
+	// 	); err != nil {
+	// 		return errors.Wrapf(err, "failed to uninstall agent")
+	// 	}
+	// }
 
 	return nil
 }
 
-func executeScriptIfExistsOnNode(node Node, scripts ...string) error {
+func removeNode(node Node) error {
 	remoteExecutor, err := NewExecutorForNode(node, useSudo)
 	if err != nil {
 		return err
 	}
 
-	for _, script := range scripts {
-		// if _, err := remoteExecutor.fileHandler.Stat(script); err != nil {
-		// 	if os.IsNotExist(err) {
-		// 		continue
-		// 	}
-		// 	return err
-		// }
-		if _, err := remoteExecutor.CombinedOutput(script); err != nil {
+	masterUninstall := "/usr/local/bin/k3s-uninstall.sh"
+	uninstallCmds := []string{gvisorUninstall}
+
+	if _, err := remoteExecutor.fileHandler.Stat(masterUninstall); err == nil {
+		uninstallCmds = append(uninstallCmds, fmt.Sprintf("sh %s", masterUninstall))
+	}
+
+	for _, cmd := range uninstallCmds {
+		if _, err := remoteExecutor.SudoCombinedOutput(cmd); err != nil {
 			return err
 		}
 	}

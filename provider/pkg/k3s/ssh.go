@@ -72,7 +72,7 @@ func (e *RemoteExecutor) ExecuteScript(script []byte) error {
 	}()
 
 	if _, err := io.Copy(file, bytes.NewReader(script)); err != nil {
-		return errors.Wrapf(err, "failed to write to tmp script file", tmpScriptLocation)
+		return errors.Wrap(err, "failed to write to tmp script file")
 	}
 
 	executeScript := &sshexec.Cmd{Command: e.sudoSprintF(

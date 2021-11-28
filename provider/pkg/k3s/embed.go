@@ -17,6 +17,9 @@ var (
 	//go:embed gvisor_install.sh
 	gvisorInstall []byte
 
+	//go:embed runtimeclass.yaml
+	gvisorRuntimeClass []byte
+
 	//go:embed upgradeplan.yaml.tmpl
 	upgradePlanManifestTemplateString string
 

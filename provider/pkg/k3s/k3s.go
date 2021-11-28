@@ -96,15 +96,16 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	}
 
 	if cluster.MasterNodes[0].RuntimeConfig.EnableGVisor {
-		setupGVisor(cluster.MasterNodes[0])
+		setupGVisor(cluster.MasterNodes[0], kubeconfig)
 	}
+	// TODO: implement RemoveGVisorIfExists
 
 	cluster.KubeConfig = kubeconfig
 
 	return nil
 }
 
-func setupGVisor(node Node) error {
+func setupGVisor(node Node, kubeconfig string) error {
 	remoteExecutor, err := NewExecutorForNode(node, useSudo)
 	if err != nil {
 		return err
@@ -119,6 +120,15 @@ func setupGVisor(node Node) error {
 	}
 
 	if _, err := remoteExecutor.SudoCombinedOutput("systemctl restart k3s.service"); err != nil {
+		return err
+	}
+
+	k8sClient, err := newK8sClient(kubeconfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create client for kubernetes cluster")
+	}
+
+	if err := k8sClient.CreateOrUpdateFromFile(context.TODO(), gvisorRuntimeClass); err != nil {
 		return err
 	}
 
@@ -200,6 +210,7 @@ func (c Cluster) Validate() error {
 }
 
 func DeleteCluster(cluster *Cluster) error {
+	// TODO: remove gvisor
 	for _, n := range cluster.MasterNodes {
 		// TODO: handle error if already gone
 		if err := executeScriptIfExistsOnNode(n, "/usr/local/bin/k3s-uninstall.sh"); err != nil {

@@ -11,8 +11,8 @@ var (
 	//go:embed system-upgrade-controller.yaml
 	systemUpgradeControllerManifest []byte
 
-	//go:embed containerd.toml
-	containerdConfig []byte
+	//go:embed containerd.toml.tmpl
+	containerdConfigTemplate []byte
 
 	//go:embed gvisor_install.sh
 	gvisorInstall []byte

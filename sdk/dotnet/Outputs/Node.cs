@@ -14,27 +14,27 @@ namespace Pulumi.K3s.Outputs
     public sealed class Node
     {
         public readonly ImmutableArray<string> Args;
+        public readonly Outputs.CRIConfiguration? CriConfig;
         public readonly string Host;
         public readonly string PrivateKey;
-        public readonly Outputs.RuntimeConfiguration? RuntimeConfig;
         public readonly string? User;
 
         [OutputConstructor]
         private Node(
             ImmutableArray<string> args,
 
+            Outputs.CRIConfiguration? criConfig,
+
             string host,
 
             string privateKey,
 
-            Outputs.RuntimeConfiguration? runtimeConfig,
-
             string? user)
         {
             Args = args;
+            CriConfig = criConfig;
             Host = host;
             PrivateKey = privateKey;
-            RuntimeConfig = runtimeConfig;
             User = user;
         }
     }

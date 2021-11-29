@@ -36,8 +36,8 @@ type Node struct {
 	// Args define CLI arguments for k3s server or k3s agent respectively.
 	// The passed args won't be validated and just passed to the installation instructions of the node.
 	// An example value for the master node would look like []string{"--disable=traefik"}.
-	Args          []string      `json:"args,omitempty"`
-	RuntimeConfig RuntimeConfig `json:"runtimeConfig,omitempty"`
+	Args      []string  `json:"args,omitempty"`
+	CRIConfig CRIConfig `json:"criConfig,omitempty"`
 }
 
 // VersionConfiguration resembles a K3s version. This can either be a release channel or a static version.
@@ -77,7 +77,7 @@ func (v VersionConfiguration) YAMLValue() string {
 	return fmt.Sprintf("channel: '%s/%s'", channelURL, channel)
 }
 
-type RuntimeConfig struct {
+type CRIConfig struct {
 	EnableGVisor bool `json:"enableGVisor,omitempty"`
 }
 
@@ -95,7 +95,7 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
-	if cluster.MasterNodes[0].RuntimeConfig.EnableGVisor {
+	if cluster.MasterNodes[0].CRIConfig.EnableGVisor {
 		if err := setupGVisor(cluster.MasterNodes[0], kubeconfig); err != nil {
 			return err
 		}

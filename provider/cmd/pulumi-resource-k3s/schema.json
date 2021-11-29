@@ -70,7 +70,7 @@
                 }
             }
         },
-        "k3s:index:RuntimeConfiguration": {
+        "k3s:index:CRIConfiguration": {
             "type": "object",
             "properties": {
                 "enableGVisor": {
@@ -102,8 +102,8 @@
                         "type": "string"
                     }
                 },
-                "runtimeConfig": {
-                    "$ref": "#/types/k3s:index:RuntimeConfiguration"
+                "criConfig": {
+                    "$ref": "#/types/k3s:index:CRIConfiguration"
                 }
             },
             "required": [
@@ -127,8 +127,8 @@
                         "type": "string"
                     }
                 },
-                "runtimeConfig": {
-                    "$ref": "#/types/k3s:index:RuntimeConfiguration"
+                "criConfig": {
+                    "$ref": "#/types/k3s:index:CRIConfiguration"
                 }
             },
             "requiredInputs": [

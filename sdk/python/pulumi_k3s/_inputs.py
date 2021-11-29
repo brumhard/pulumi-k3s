@@ -9,10 +9,27 @@ from typing import Any, Mapping, Optional, Sequence, Union, overload
 from . import _utilities
 
 __all__ = [
+    'CRIConfigurationArgs',
     'NodeArgs',
-    'RuntimeConfigurationArgs',
     'VersionConfigurationArgs',
 ]
+
+@pulumi.input_type
+class CRIConfigurationArgs:
+    def __init__(__self__, *,
+                 enable_g_visor: Optional[pulumi.Input[bool]] = None):
+        if enable_g_visor is not None:
+            pulumi.set(__self__, "enable_g_visor", enable_g_visor)
+
+    @property
+    @pulumi.getter(name="enableGVisor")
+    def enable_g_visor(self) -> Optional[pulumi.Input[bool]]:
+        return pulumi.get(self, "enable_g_visor")
+
+    @enable_g_visor.setter
+    def enable_g_visor(self, value: Optional[pulumi.Input[bool]]):
+        pulumi.set(self, "enable_g_visor", value)
+
 
 @pulumi.input_type
 class NodeArgs:
@@ -20,14 +37,14 @@ class NodeArgs:
                  host: pulumi.Input[str],
                  private_key: pulumi.Input[str],
                  args: Optional[pulumi.Input[Sequence[pulumi.Input[str]]]] = None,
-                 runtime_config: Optional[pulumi.Input['RuntimeConfigurationArgs']] = None,
+                 cri_config: Optional[pulumi.Input['CRIConfigurationArgs']] = None,
                  user: Optional[pulumi.Input[str]] = None):
         pulumi.set(__self__, "host", host)
         pulumi.set(__self__, "private_key", private_key)
         if args is not None:
             pulumi.set(__self__, "args", args)
-        if runtime_config is not None:
-            pulumi.set(__self__, "runtime_config", runtime_config)
+        if cri_config is not None:
+            pulumi.set(__self__, "cri_config", cri_config)
         if user is None:
             user = 'root'
         if user is not None:
@@ -61,13 +78,13 @@ class NodeArgs:
         pulumi.set(self, "args", value)
 
     @property
-    @pulumi.getter(name="runtimeConfig")
-    def runtime_config(self) -> Optional[pulumi.Input['RuntimeConfigurationArgs']]:
-        return pulumi.get(self, "runtime_config")
+    @pulumi.getter(name="criConfig")
+    def cri_config(self) -> Optional[pulumi.Input['CRIConfigurationArgs']]:
+        return pulumi.get(self, "cri_config")
 
-    @runtime_config.setter
-    def runtime_config(self, value: Optional[pulumi.Input['RuntimeConfigurationArgs']]):
-        pulumi.set(self, "runtime_config", value)
+    @cri_config.setter
+    def cri_config(self, value: Optional[pulumi.Input['CRIConfigurationArgs']]):
+        pulumi.set(self, "cri_config", value)
 
     @property
     @pulumi.getter
@@ -77,23 +94,6 @@ class NodeArgs:
     @user.setter
     def user(self, value: Optional[pulumi.Input[str]]):
         pulumi.set(self, "user", value)
-
-
-@pulumi.input_type
-class RuntimeConfigurationArgs:
-    def __init__(__self__, *,
-                 enable_g_visor: Optional[pulumi.Input[bool]] = None):
-        if enable_g_visor is not None:
-            pulumi.set(__self__, "enable_g_visor", enable_g_visor)
-
-    @property
-    @pulumi.getter(name="enableGVisor")
-    def enable_g_visor(self) -> Optional[pulumi.Input[bool]]:
-        return pulumi.get(self, "enable_g_visor")
-
-    @enable_g_visor.setter
-    def enable_g_visor(self, value: Optional[pulumi.Input[bool]]):
-        pulumi.set(self, "enable_g_visor", value)
 
 
 @pulumi.input_type

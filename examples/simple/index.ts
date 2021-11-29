@@ -9,11 +9,7 @@ const cluster = new k3s.Cluster("mycluster", {
             host: cfg.require("master_ip"),
             privateKey: cfg.requireSecret("private_key"),
             user: "ubuntu",
-            args: [
-                "--flannel-backend=none",
-                "--disable-network-policy"
-            ],
-            runtimeConfig: {
+            criConfig: {
                 enableGVisor: true
             }
         }

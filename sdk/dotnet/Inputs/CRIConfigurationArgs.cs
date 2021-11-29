@@ -7,18 +7,16 @@ using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
 
-namespace Pulumi.K3s.Outputs
+namespace Pulumi.K3s.Inputs
 {
 
-    [OutputType]
-    public sealed class RuntimeConfiguration
+    public sealed class CRIConfigurationArgs : Pulumi.ResourceArgs
     {
-        public readonly bool? EnableGVisor;
+        [Input("enableGVisor")]
+        public Input<bool>? EnableGVisor { get; set; }
 
-        [OutputConstructor]
-        private RuntimeConfiguration(bool? enableGVisor)
+        public CRIConfigurationArgs()
         {
-            EnableGVisor = enableGVisor;
         }
     }
 }

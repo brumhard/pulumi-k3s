@@ -10,6 +10,139 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type CNIConfiguration struct {
+	Provider *string `pulumi:"provider"`
+}
+
+// CNIConfigurationInput is an input type that accepts CNIConfigurationArgs and CNIConfigurationOutput values.
+// You can construct a concrete instance of `CNIConfigurationInput` via:
+//
+//          CNIConfigurationArgs{...}
+type CNIConfigurationInput interface {
+	pulumi.Input
+
+	ToCNIConfigurationOutput() CNIConfigurationOutput
+	ToCNIConfigurationOutputWithContext(context.Context) CNIConfigurationOutput
+}
+
+type CNIConfigurationArgs struct {
+	Provider pulumi.StringPtrInput `pulumi:"provider"`
+}
+
+func (CNIConfigurationArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*CNIConfiguration)(nil)).Elem()
+}
+
+func (i CNIConfigurationArgs) ToCNIConfigurationOutput() CNIConfigurationOutput {
+	return i.ToCNIConfigurationOutputWithContext(context.Background())
+}
+
+func (i CNIConfigurationArgs) ToCNIConfigurationOutputWithContext(ctx context.Context) CNIConfigurationOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CNIConfigurationOutput)
+}
+
+func (i CNIConfigurationArgs) ToCNIConfigurationPtrOutput() CNIConfigurationPtrOutput {
+	return i.ToCNIConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (i CNIConfigurationArgs) ToCNIConfigurationPtrOutputWithContext(ctx context.Context) CNIConfigurationPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CNIConfigurationOutput).ToCNIConfigurationPtrOutputWithContext(ctx)
+}
+
+// CNIConfigurationPtrInput is an input type that accepts CNIConfigurationArgs, CNIConfigurationPtr and CNIConfigurationPtrOutput values.
+// You can construct a concrete instance of `CNIConfigurationPtrInput` via:
+//
+//          CNIConfigurationArgs{...}
+//
+//  or:
+//
+//          nil
+type CNIConfigurationPtrInput interface {
+	pulumi.Input
+
+	ToCNIConfigurationPtrOutput() CNIConfigurationPtrOutput
+	ToCNIConfigurationPtrOutputWithContext(context.Context) CNIConfigurationPtrOutput
+}
+
+type cniconfigurationPtrType CNIConfigurationArgs
+
+func CNIConfigurationPtr(v *CNIConfigurationArgs) CNIConfigurationPtrInput {
+	return (*cniconfigurationPtrType)(v)
+}
+
+func (*cniconfigurationPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**CNIConfiguration)(nil)).Elem()
+}
+
+func (i *cniconfigurationPtrType) ToCNIConfigurationPtrOutput() CNIConfigurationPtrOutput {
+	return i.ToCNIConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (i *cniconfigurationPtrType) ToCNIConfigurationPtrOutputWithContext(ctx context.Context) CNIConfigurationPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CNIConfigurationPtrOutput)
+}
+
+type CNIConfigurationOutput struct{ *pulumi.OutputState }
+
+func (CNIConfigurationOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*CNIConfiguration)(nil)).Elem()
+}
+
+func (o CNIConfigurationOutput) ToCNIConfigurationOutput() CNIConfigurationOutput {
+	return o
+}
+
+func (o CNIConfigurationOutput) ToCNIConfigurationOutputWithContext(ctx context.Context) CNIConfigurationOutput {
+	return o
+}
+
+func (o CNIConfigurationOutput) ToCNIConfigurationPtrOutput() CNIConfigurationPtrOutput {
+	return o.ToCNIConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (o CNIConfigurationOutput) ToCNIConfigurationPtrOutputWithContext(ctx context.Context) CNIConfigurationPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v CNIConfiguration) *CNIConfiguration {
+		return &v
+	}).(CNIConfigurationPtrOutput)
+}
+
+func (o CNIConfigurationOutput) Provider() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v CNIConfiguration) *string { return v.Provider }).(pulumi.StringPtrOutput)
+}
+
+type CNIConfigurationPtrOutput struct{ *pulumi.OutputState }
+
+func (CNIConfigurationPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**CNIConfiguration)(nil)).Elem()
+}
+
+func (o CNIConfigurationPtrOutput) ToCNIConfigurationPtrOutput() CNIConfigurationPtrOutput {
+	return o
+}
+
+func (o CNIConfigurationPtrOutput) ToCNIConfigurationPtrOutputWithContext(ctx context.Context) CNIConfigurationPtrOutput {
+	return o
+}
+
+func (o CNIConfigurationPtrOutput) Elem() CNIConfigurationOutput {
+	return o.ApplyT(func(v *CNIConfiguration) CNIConfiguration {
+		if v != nil {
+			return *v
+		}
+		var ret CNIConfiguration
+		return ret
+	}).(CNIConfigurationOutput)
+}
+
+func (o CNIConfigurationPtrOutput) Provider() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *CNIConfiguration) *string {
+		if v == nil {
+			return nil
+		}
+		return v.Provider
+	}).(pulumi.StringPtrOutput)
+}
+
 type CRIConfiguration struct {
 	EnableGVisor *bool `pulumi:"enableGVisor"`
 }
@@ -410,12 +543,16 @@ func (o VersionConfigurationPtrOutput) Version() pulumi.StringPtrOutput {
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*CNIConfigurationInput)(nil)).Elem(), CNIConfigurationArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*CNIConfigurationPtrInput)(nil)).Elem(), CNIConfigurationArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*CRIConfigurationInput)(nil)).Elem(), CRIConfigurationArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*CRIConfigurationPtrInput)(nil)).Elem(), CRIConfigurationArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NodeInput)(nil)).Elem(), NodeArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NodeArrayInput)(nil)).Elem(), NodeArray{})
 	pulumi.RegisterInputType(reflect.TypeOf((*VersionConfigurationInput)(nil)).Elem(), VersionConfigurationArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*VersionConfigurationPtrInput)(nil)).Elem(), VersionConfigurationArgs{})
+	pulumi.RegisterOutputType(CNIConfigurationOutput{})
+	pulumi.RegisterOutputType(CNIConfigurationPtrOutput{})
 	pulumi.RegisterOutputType(CRIConfigurationOutput{})
 	pulumi.RegisterOutputType(CRIConfigurationPtrOutput{})
 	pulumi.RegisterOutputType(NodeOutput{})

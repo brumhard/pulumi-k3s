@@ -9,10 +9,28 @@ from typing import Any, Mapping, Optional, Sequence, Union, overload
 from . import _utilities
 
 __all__ = [
+    'CNIConfigurationArgs',
     'CRIConfigurationArgs',
     'NodeArgs',
     'VersionConfigurationArgs',
 ]
+
+@pulumi.input_type
+class CNIConfigurationArgs:
+    def __init__(__self__, *,
+                 provider: Optional[pulumi.Input[str]] = None):
+        if provider is not None:
+            pulumi.set(__self__, "provider", provider)
+
+    @property
+    @pulumi.getter
+    def provider(self) -> Optional[pulumi.Input[str]]:
+        return pulumi.get(self, "provider")
+
+    @provider.setter
+    def provider(self, value: Optional[pulumi.Input[str]]):
+        pulumi.set(self, "provider", value)
+
 
 @pulumi.input_type
 class CRIConfigurationArgs:

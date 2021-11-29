@@ -27,6 +27,7 @@ type Cluster struct {
 	Agents        []Node               `json:"agents,omitempty"`
 	KubeConfig    string               `json:"kubeconfig,omitempty"`
 	VersionConfig VersionConfiguration `json:"versionConfig,omitempty"`
+	CNIConfig     CNIConfig            `json:"cniConfig,omitempty"`
 }
 
 type Node struct {
@@ -79,6 +80,10 @@ func (v VersionConfiguration) YAMLValue() string {
 
 type CRIConfig struct {
 	EnableGVisor bool `json:"enableGVisor,omitempty"`
+}
+
+type CNIConfig struct {
+	Provider string `json:"provider,omitempty"`
 }
 
 func MakeOrUpdateCluster(name string, cluster *Cluster) error {

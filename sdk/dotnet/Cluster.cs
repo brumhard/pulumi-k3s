@@ -15,6 +15,9 @@ namespace Pulumi.K3s
         [Output("agents")]
         public Output<ImmutableArray<Outputs.Node>> Agents { get; private set; } = null!;
 
+        [Output("cniConfig")]
+        public Output<Outputs.CNIConfiguration?> CniConfig { get; private set; } = null!;
+
         [Output("kubeconfig")]
         public Output<string> Kubeconfig { get; private set; } = null!;
 
@@ -76,6 +79,9 @@ namespace Pulumi.K3s
             get => _agents ?? (_agents = new InputList<Inputs.NodeArgs>());
             set => _agents = value;
         }
+
+        [Input("cniConfig")]
+        public Input<Inputs.CNIConfigurationArgs>? CniConfig { get; set; }
 
         [Input("masterNodes", required: true)]
         private InputList<Inputs.NodeArgs>? _masterNodes;

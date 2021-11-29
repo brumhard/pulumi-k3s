@@ -33,6 +33,7 @@ export class Cluster extends pulumi.CustomResource {
     }
 
     public readonly agents!: pulumi.Output<outputs.Node[] | undefined>;
+    public readonly cniConfig!: pulumi.Output<outputs.CNIConfiguration | undefined>;
     public /*out*/ readonly kubeconfig!: pulumi.Output<string>;
     public readonly masterNodes!: pulumi.Output<outputs.Node[]>;
     public readonly versionConfig!: pulumi.Output<outputs.VersionConfiguration | undefined>;
@@ -52,11 +53,13 @@ export class Cluster extends pulumi.CustomResource {
                 throw new Error("Missing required property 'masterNodes'");
             }
             inputs["agents"] = args ? args.agents : undefined;
+            inputs["cniConfig"] = args ? args.cniConfig : undefined;
             inputs["masterNodes"] = args ? args.masterNodes : undefined;
             inputs["versionConfig"] = args ? args.versionConfig : undefined;
             inputs["kubeconfig"] = undefined /*out*/;
         } else {
             inputs["agents"] = undefined /*out*/;
+            inputs["cniConfig"] = undefined /*out*/;
             inputs["kubeconfig"] = undefined /*out*/;
             inputs["masterNodes"] = undefined /*out*/;
             inputs["versionConfig"] = undefined /*out*/;
@@ -73,6 +76,7 @@ export class Cluster extends pulumi.CustomResource {
  */
 export interface ClusterArgs {
     agents?: pulumi.Input<pulumi.Input<inputs.NodeArgs>[]>;
+    cniConfig?: pulumi.Input<inputs.CNIConfigurationArgs>;
     masterNodes: pulumi.Input<pulumi.Input<inputs.NodeArgs>[]>;
     versionConfig?: pulumi.Input<inputs.VersionConfigurationArgs>;
 }

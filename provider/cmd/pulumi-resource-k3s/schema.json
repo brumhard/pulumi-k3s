@@ -22,6 +22,9 @@
                 },
                 "versionConfig": {
                     "$ref": "#/types/k3s:index:VersionConfiguration"
+                },
+                "cniConfig": {
+                    "$ref": "#/types/k3s:index:CNIConfiguration"
                 }
             },
             "required": [
@@ -43,6 +46,9 @@
                 },
                 "versionConfig": {
                     "$ref": "#/types/k3s:index:VersionConfiguration"
+                },
+                "cniConfig": {
+                    "$ref": "#/types/k3s:index:CNIConfiguration"
                 }
             },
             "requiredInputs": [
@@ -80,6 +86,27 @@
             "inputProperties": {
                 "enableGVisor": {
                     "type": "boolean"
+                }
+            }
+        },
+        "k3s:index:CNIConfiguration": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "flannel",
+                        "cilium"
+                    ]
+                }
+            },
+            "inputProperties": {
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "flannel",
+                        "cilium"
+                    ]
                 }
             }
         },

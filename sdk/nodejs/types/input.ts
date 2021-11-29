@@ -4,6 +4,10 @@
 import * as pulumi from "@pulumi/pulumi";
 import { input as inputs, output as outputs } from "../types";
 
+export interface CNIConfigurationArgs {
+    provider?: pulumi.Input<string>;
+}
+
 export interface CRIConfigurationArgs {
     enableGVisor?: pulumi.Input<boolean>;
 }

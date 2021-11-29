@@ -15,6 +15,7 @@ type Cluster struct {
 	pulumi.CustomResourceState
 
 	Agents        NodeArrayOutput               `pulumi:"agents"`
+	CniConfig     CNIConfigurationPtrOutput     `pulumi:"cniConfig"`
 	Kubeconfig    pulumi.StringOutput           `pulumi:"kubeconfig"`
 	MasterNodes   NodeArrayOutput               `pulumi:"masterNodes"`
 	VersionConfig VersionConfigurationPtrOutput `pulumi:"versionConfig"`
@@ -63,6 +64,7 @@ func (ClusterState) ElementType() reflect.Type {
 
 type clusterArgs struct {
 	Agents        []Node                `pulumi:"agents"`
+	CniConfig     *CNIConfiguration     `pulumi:"cniConfig"`
 	MasterNodes   []Node                `pulumi:"masterNodes"`
 	VersionConfig *VersionConfiguration `pulumi:"versionConfig"`
 }
@@ -70,6 +72,7 @@ type clusterArgs struct {
 // The set of arguments for constructing a Cluster resource.
 type ClusterArgs struct {
 	Agents        NodeArrayInput
+	CniConfig     CNIConfigurationPtrInput
 	MasterNodes   NodeArrayInput
 	VersionConfig VersionConfigurationPtrInput
 }

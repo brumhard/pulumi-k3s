@@ -10,10 +10,24 @@ from . import _utilities
 from . import outputs
 
 __all__ = [
+    'CNIConfiguration',
     'CRIConfiguration',
     'Node',
     'VersionConfiguration',
 ]
+
+@pulumi.output_type
+class CNIConfiguration(dict):
+    def __init__(__self__, *,
+                 provider: Optional[str] = None):
+        if provider is not None:
+            pulumi.set(__self__, "provider", provider)
+
+    @property
+    @pulumi.getter
+    def provider(self) -> Optional[str]:
+        return pulumi.get(self, "provider")
+
 
 @pulumi.output_type
 class CRIConfiguration(dict):

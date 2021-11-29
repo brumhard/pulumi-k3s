@@ -4,8 +4,13 @@
 import * as pulumi from "@pulumi/pulumi";
 import { input as inputs, output as outputs } from "../types";
 
+export interface CRIConfiguration {
+    enableGVisor?: boolean;
+}
+
 export interface Node {
     args?: string[];
+    criConfig?: outputs.CRIConfiguration;
     host: string;
     privateKey: string;
     user?: string;

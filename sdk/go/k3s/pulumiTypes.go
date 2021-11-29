@@ -10,11 +10,145 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type CRIConfiguration struct {
+	EnableGVisor *bool `pulumi:"enableGVisor"`
+}
+
+// CRIConfigurationInput is an input type that accepts CRIConfigurationArgs and CRIConfigurationOutput values.
+// You can construct a concrete instance of `CRIConfigurationInput` via:
+//
+//          CRIConfigurationArgs{...}
+type CRIConfigurationInput interface {
+	pulumi.Input
+
+	ToCRIConfigurationOutput() CRIConfigurationOutput
+	ToCRIConfigurationOutputWithContext(context.Context) CRIConfigurationOutput
+}
+
+type CRIConfigurationArgs struct {
+	EnableGVisor pulumi.BoolPtrInput `pulumi:"enableGVisor"`
+}
+
+func (CRIConfigurationArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*CRIConfiguration)(nil)).Elem()
+}
+
+func (i CRIConfigurationArgs) ToCRIConfigurationOutput() CRIConfigurationOutput {
+	return i.ToCRIConfigurationOutputWithContext(context.Background())
+}
+
+func (i CRIConfigurationArgs) ToCRIConfigurationOutputWithContext(ctx context.Context) CRIConfigurationOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CRIConfigurationOutput)
+}
+
+func (i CRIConfigurationArgs) ToCRIConfigurationPtrOutput() CRIConfigurationPtrOutput {
+	return i.ToCRIConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (i CRIConfigurationArgs) ToCRIConfigurationPtrOutputWithContext(ctx context.Context) CRIConfigurationPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CRIConfigurationOutput).ToCRIConfigurationPtrOutputWithContext(ctx)
+}
+
+// CRIConfigurationPtrInput is an input type that accepts CRIConfigurationArgs, CRIConfigurationPtr and CRIConfigurationPtrOutput values.
+// You can construct a concrete instance of `CRIConfigurationPtrInput` via:
+//
+//          CRIConfigurationArgs{...}
+//
+//  or:
+//
+//          nil
+type CRIConfigurationPtrInput interface {
+	pulumi.Input
+
+	ToCRIConfigurationPtrOutput() CRIConfigurationPtrOutput
+	ToCRIConfigurationPtrOutputWithContext(context.Context) CRIConfigurationPtrOutput
+}
+
+type criconfigurationPtrType CRIConfigurationArgs
+
+func CRIConfigurationPtr(v *CRIConfigurationArgs) CRIConfigurationPtrInput {
+	return (*criconfigurationPtrType)(v)
+}
+
+func (*criconfigurationPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**CRIConfiguration)(nil)).Elem()
+}
+
+func (i *criconfigurationPtrType) ToCRIConfigurationPtrOutput() CRIConfigurationPtrOutput {
+	return i.ToCRIConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (i *criconfigurationPtrType) ToCRIConfigurationPtrOutputWithContext(ctx context.Context) CRIConfigurationPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CRIConfigurationPtrOutput)
+}
+
+type CRIConfigurationOutput struct{ *pulumi.OutputState }
+
+func (CRIConfigurationOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*CRIConfiguration)(nil)).Elem()
+}
+
+func (o CRIConfigurationOutput) ToCRIConfigurationOutput() CRIConfigurationOutput {
+	return o
+}
+
+func (o CRIConfigurationOutput) ToCRIConfigurationOutputWithContext(ctx context.Context) CRIConfigurationOutput {
+	return o
+}
+
+func (o CRIConfigurationOutput) ToCRIConfigurationPtrOutput() CRIConfigurationPtrOutput {
+	return o.ToCRIConfigurationPtrOutputWithContext(context.Background())
+}
+
+func (o CRIConfigurationOutput) ToCRIConfigurationPtrOutputWithContext(ctx context.Context) CRIConfigurationPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v CRIConfiguration) *CRIConfiguration {
+		return &v
+	}).(CRIConfigurationPtrOutput)
+}
+
+func (o CRIConfigurationOutput) EnableGVisor() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v CRIConfiguration) *bool { return v.EnableGVisor }).(pulumi.BoolPtrOutput)
+}
+
+type CRIConfigurationPtrOutput struct{ *pulumi.OutputState }
+
+func (CRIConfigurationPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**CRIConfiguration)(nil)).Elem()
+}
+
+func (o CRIConfigurationPtrOutput) ToCRIConfigurationPtrOutput() CRIConfigurationPtrOutput {
+	return o
+}
+
+func (o CRIConfigurationPtrOutput) ToCRIConfigurationPtrOutputWithContext(ctx context.Context) CRIConfigurationPtrOutput {
+	return o
+}
+
+func (o CRIConfigurationPtrOutput) Elem() CRIConfigurationOutput {
+	return o.ApplyT(func(v *CRIConfiguration) CRIConfiguration {
+		if v != nil {
+			return *v
+		}
+		var ret CRIConfiguration
+		return ret
+	}).(CRIConfigurationOutput)
+}
+
+func (o CRIConfigurationPtrOutput) EnableGVisor() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *CRIConfiguration) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.EnableGVisor
+	}).(pulumi.BoolPtrOutput)
+}
+
 type Node struct {
-	Args       []string `pulumi:"args"`
-	Host       string   `pulumi:"host"`
-	PrivateKey string   `pulumi:"privateKey"`
-	User       *string  `pulumi:"user"`
+	Args       []string          `pulumi:"args"`
+	CriConfig  *CRIConfiguration `pulumi:"criConfig"`
+	Host       string            `pulumi:"host"`
+	PrivateKey string            `pulumi:"privateKey"`
+	User       *string           `pulumi:"user"`
 }
 
 // NodeInput is an input type that accepts NodeArgs and NodeOutput values.
@@ -29,10 +163,11 @@ type NodeInput interface {
 }
 
 type NodeArgs struct {
-	Args       pulumi.StringArrayInput `pulumi:"args"`
-	Host       pulumi.StringInput      `pulumi:"host"`
-	PrivateKey pulumi.StringInput      `pulumi:"privateKey"`
-	User       pulumi.StringPtrInput   `pulumi:"user"`
+	Args       pulumi.StringArrayInput  `pulumi:"args"`
+	CriConfig  CRIConfigurationPtrInput `pulumi:"criConfig"`
+	Host       pulumi.StringInput       `pulumi:"host"`
+	PrivateKey pulumi.StringInput       `pulumi:"privateKey"`
+	User       pulumi.StringPtrInput    `pulumi:"user"`
 }
 
 func (NodeArgs) ElementType() reflect.Type {
@@ -88,6 +223,10 @@ func (o NodeOutput) ToNodeOutputWithContext(ctx context.Context) NodeOutput {
 
 func (o NodeOutput) Args() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v Node) []string { return v.Args }).(pulumi.StringArrayOutput)
+}
+
+func (o NodeOutput) CriConfig() CRIConfigurationPtrOutput {
+	return o.ApplyT(func(v Node) *CRIConfiguration { return v.CriConfig }).(CRIConfigurationPtrOutput)
 }
 
 func (o NodeOutput) Host() pulumi.StringOutput {
@@ -271,10 +410,14 @@ func (o VersionConfigurationPtrOutput) Version() pulumi.StringPtrOutput {
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*CRIConfigurationInput)(nil)).Elem(), CRIConfigurationArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*CRIConfigurationPtrInput)(nil)).Elem(), CRIConfigurationArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NodeInput)(nil)).Elem(), NodeArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NodeArrayInput)(nil)).Elem(), NodeArray{})
 	pulumi.RegisterInputType(reflect.TypeOf((*VersionConfigurationInput)(nil)).Elem(), VersionConfigurationArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*VersionConfigurationPtrInput)(nil)).Elem(), VersionConfigurationArgs{})
+	pulumi.RegisterOutputType(CRIConfigurationOutput{})
+	pulumi.RegisterOutputType(CRIConfigurationPtrOutput{})
 	pulumi.RegisterOutputType(NodeOutput{})
 	pulumi.RegisterOutputType(NodeArrayOutput{})
 	pulumi.RegisterOutputType(VersionConfigurationOutput{})

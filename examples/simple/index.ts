@@ -9,13 +9,13 @@ const cluster = new k3s.Cluster("mycluster", {
             host: cfg.require("master_ip"),
             privateKey: cfg.requireSecret("private_key"),
             user: "ubuntu",
-            args: [
-                "--disable=traefik"
-            ]
+            criConfig: {
+                enableGVisor: true
+            }
         }
     ],
     versionConfig: {
-        version: "v1.21.5+k3s2"
+        version: "v1.22.3+k3s1"
     }
 });
 

@@ -20,6 +20,9 @@ namespace Pulumi.K3s.Inputs
             set => _args = value;
         }
 
+        [Input("criConfig")]
+        public Input<Inputs.CRIConfigurationArgs>? CriConfig { get; set; }
+
         [Input("host", required: true)]
         public Input<string> Host { get; set; } = null!;
 

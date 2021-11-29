@@ -14,6 +14,7 @@ namespace Pulumi.K3s.Outputs
     public sealed class Node
     {
         public readonly ImmutableArray<string> Args;
+        public readonly Outputs.CRIConfiguration? CriConfig;
         public readonly string Host;
         public readonly string PrivateKey;
         public readonly string? User;
@@ -22,6 +23,8 @@ namespace Pulumi.K3s.Outputs
         private Node(
             ImmutableArray<string> args,
 
+            Outputs.CRIConfiguration? criConfig,
+
             string host,
 
             string privateKey,
@@ -29,6 +32,7 @@ namespace Pulumi.K3s.Outputs
             string? user)
         {
             Args = args;
+            CriConfig = criConfig;
             Host = host;
             PrivateKey = privateKey;
             User = user;

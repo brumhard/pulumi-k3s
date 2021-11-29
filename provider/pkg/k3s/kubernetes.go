@@ -63,7 +63,9 @@ func newK8sClient(kubeconfig string) (*K8sClient, error) {
 	}, nil
 }
 
-func (k *K8sClient) CreateOrUpdateFromFile(ctx context.Context, fileBytes []byte) error {
+func (k *K8sClient) forEachObjectDoWithRetry(
+	ctx context.Context, fileBytes []byte, fn func(dr dynamic.ResourceInterface, obj unstructured.Unstructured) error,
+) error {
 	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 	reader := test.NewYAMLReader(bufio.NewReader(bytes.NewReader(fileBytes)))
 	for {
@@ -103,22 +105,11 @@ func (k *K8sClient) CreateOrUpdateFromFile(ctx context.Context, fileBytes []byte
 				dr = k.dyn.Resource(mapping.Resource)
 			}
 
-			currentObj, err := dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					_, err = dr.Create(ctx, &obj, metav1.CreateOptions{
-						FieldManager: "pulumi-k3s",
-					})
-				}
+			if err := fn(dr, obj); err != nil {
 				return err
 			}
 
-			obj.SetResourceVersion(currentObj.GetResourceVersion())
-			_, err = dr.Update(ctx, &obj, metav1.UpdateOptions{
-				FieldManager: "pulumi-k3s",
-			})
-
-			return err
+			return nil
 		})
 		if err != nil {
 			return err
@@ -126,4 +117,42 @@ func (k *K8sClient) CreateOrUpdateFromFile(ctx context.Context, fileBytes []byte
 	}
 
 	return nil
+}
+
+func (k *K8sClient) CreateOrUpdateFromFile(ctx context.Context, fileBytes []byte) error {
+	return k.forEachObjectDoWithRetry(ctx, fileBytes, func(dr dynamic.ResourceInterface, obj unstructured.Unstructured) error {
+		currentObj, err := dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				_, err = dr.Create(ctx, &obj, metav1.CreateOptions{
+					FieldManager: "pulumi-k3s",
+				})
+			}
+			return err
+		}
+
+		obj.SetResourceVersion(currentObj.GetResourceVersion())
+		_, err = dr.Update(ctx, &obj, metav1.UpdateOptions{
+			FieldManager: "pulumi-k3s",
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (k *K8sClient) DeleteIfExistsFromFile(ctx context.Context, fileBytes []byte) error {
+	return k.forEachObjectDoWithRetry(ctx, fileBytes, func(dr dynamic.ResourceInterface, obj unstructured.Unstructured) error {
+		if err := dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{}); err != nil {
+			if apierrors.IsGone(err) || apierrors.IsNotFound((err)) {
+				return nil
+			}
+
+			return err
+		}
+
+		return nil
+	})
 }

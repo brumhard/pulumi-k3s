@@ -70,6 +70,19 @@
                 }
             }
         },
+        "k3s:index:CRIConfiguration": {
+            "type": "object",
+            "properties": {
+                "enableGVisor": {
+                    "type": "boolean"
+                }
+            },
+            "inputProperties": {
+                "enableGVisor": {
+                    "type": "boolean"
+                }
+            }
+        },
         "k3s:index:Node": {
             "type": "object",
             "properties": {
@@ -88,6 +101,9 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "criConfig": {
+                    "$ref": "#/types/k3s:index:CRIConfiguration"
                 }
             },
             "required": [
@@ -104,6 +120,15 @@
                 },
                 "privateKey": {
                     "type": "string"
+                },
+                "args": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "criConfig": {
+                    "$ref": "#/types/k3s:index:CRIConfiguration"
                 }
             },
             "requiredInputs": [

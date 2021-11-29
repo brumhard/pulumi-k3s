@@ -4,13 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"path"
 	"strings"
 
-	"github.com/brumhard/pulumi-k3s/provider/pkg/sshexec"
 	"github.com/pkg/errors"
-	"github.com/pkg/sftp"
 )
 
 const (
@@ -18,6 +14,7 @@ const (
 	useSudo                = true
 	channelURL             = "https://update.k3s.io/v1-release/channels"
 	autoDeployManifestPath = "/var/lib/rancher/k3s/server/manifests"
+	containerdTemplatePath = "/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl"
 )
 
 var (
@@ -39,7 +36,8 @@ type Node struct {
 	// Args define CLI arguments for k3s server or k3s agent respectively.
 	// The passed args won't be validated and just passed to the installation instructions of the node.
 	// An example value for the master node would look like []string{"--disable=traefik"}.
-	Args []string `json:"args,omitempty"`
+	Args      []string  `json:"args,omitempty"`
+	CRIConfig CRIConfig `json:"criConfig,omitempty"`
 }
 
 // VersionConfiguration resembles a K3s version. This can either be a release channel or a static version.
@@ -79,17 +77,16 @@ func (v VersionConfiguration) YAMLValue() string {
 	return fmt.Sprintf("channel: '%s/%s'", channelURL, channel)
 }
 
+type CRIConfig struct {
+	EnableGVisor bool `json:"enableGVisor,omitempty"`
+}
+
 func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	if err := cluster.Validate(); err != nil {
 		return err
 	}
 
-	sudoPrefix := ""
-	if useSudo {
-		sudoPrefix = "sudo "
-	}
-
-	kubeconfig, err := setupNode(cluster.MasterNodes[0], cluster.VersionConfig, sudoPrefix)
+	kubeconfig, err := setupNode(cluster.MasterNodes[0], cluster.VersionConfig)
 	if err != nil {
 		return err
 	}
@@ -98,7 +95,73 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
+	if cluster.MasterNodes[0].CRIConfig.EnableGVisor {
+		if err := setupGVisor(cluster.MasterNodes[0], kubeconfig); err != nil {
+			return err
+		}
+	} else {
+		if err := uninstallGVisor(cluster.MasterNodes[0], kubeconfig); err != nil {
+			return err
+		}
+	}
+
 	cluster.KubeConfig = kubeconfig
+
+	return nil
+}
+
+func setupGVisor(node Node, kubeconfig string) error {
+	remoteExecutor, err := NewExecutorForNode(node, useSudo)
+	if err != nil {
+		return err
+	}
+
+	if err := remoteExecutor.CopyFile(bytes.NewReader(containerdConfigTemplate), containerdTemplatePath); err != nil {
+		return err
+	}
+
+	if err := remoteExecutor.ExecuteScript(gvisorInstall); err != nil {
+		return err
+	}
+
+	if _, err := remoteExecutor.SudoCombinedOutput("systemctl restart k3s.service"); err != nil {
+		return err
+	}
+
+	k8sClient, err := newK8sClient(kubeconfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create client for kubernetes cluster")
+	}
+
+	if err := k8sClient.CreateOrUpdateFromFile(context.TODO(), gvisorRuntimeClass); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func uninstallGVisor(node Node, kubeconfig string) error {
+	k8sClient, err := newK8sClient(kubeconfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create client for kubernetes cluster")
+	}
+
+	if err := k8sClient.DeleteIfExistsFromFile(context.TODO(), gvisorRuntimeClass); err != nil {
+		return err
+	}
+
+	remoteExecutor, err := NewExecutorForNode(node, useSudo)
+	if err != nil {
+		return err
+	}
+
+	for _, cmd := range []string{
+		gvisorUninstall, fmt.Sprintf("rm %s", containerdTemplatePath), "systemctl restart k3s.service",
+	} {
+		if _, err := remoteExecutor.SudoCombinedOutput(cmd); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -123,31 +186,12 @@ func setupAutoUpdate(kubeconfig string, versionConfig VersionConfiguration) erro
 	return nil
 }
 
-// NOTE: kept in case it's needed for containerd
-func scpCopyManifests(sftpClient *sftp.Client, sshClient *sshexec.Client, fileReader io.Reader, fileName, sudoPrefix string) error {
-	tmpFilePath := path.Join("/tmp", fileName)
-
-	file, err := sftpClient.Create(tmpFilePath)
+func setupNode(node Node, versionConfig VersionConfiguration) (string, error) {
+	remoteExecutor, err := NewExecutorForNode(node, useSudo)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create tmp file at %s", tmpFilePath)
+		return "", err
 	}
 
-	if _, err := io.Copy(file, fileReader); err != nil {
-		return errors.Wrapf(err, "failed to write to %s", tmpFilePath)
-	}
-
-	targetPath := path.Join(autoDeployManifestPath, fileName)
-	mvCmd := &sshexec.Cmd{Command: fmt.Sprintf(
-		"%smv %s %s", sudoPrefix, tmpFilePath, targetPath,
-	)}
-	if err := sshClient.Run(mvCmd); err != nil {
-		return errors.Wrapf(err, "failed to move from %s to %s", tmpFilePath, targetPath)
-	}
-
-	return nil
-}
-
-func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string) (string, error) {
 	env := []string{
 		versionConfig.EnvSetting(),
 		fmt.Sprintf(`INSTALL_K3S_EXEC='server --tls-san="%s" %s'`, node.Host, strings.Join(node.Args, " ")),
@@ -155,33 +199,14 @@ func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string)
 
 	installK3scommand := fmt.Sprintf("%s | %s sh -\n", getScript, strings.Join(env, " "))
 
-	getConfigcommand := fmt.Sprintf(sudoPrefix + "cat /etc/rancher/k3s/k3s.yaml")
-
-	// execute commands
-
-	// TODO: make port somehow configurable
-	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", node.Host), node.User, []byte(node.PrivateKey))
+	_, err = remoteExecutor.CombinedOutput(installK3scommand)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to establish ssh connection to %s", node.Host)
+		return "", err
 	}
 
-	stdouterr := &bytes.Buffer{}
-	err = client.Run(&sshexec.Cmd{
-		Command: installK3scommand,
-		Stderr:  stdouterr,
-		Stdout:  stdouterr,
-	})
+	kubeconfig, err := remoteExecutor.SudoOutput("cat /etc/rancher/k3s/k3s.yaml")
 	if err != nil {
-		return "", errors.Wrap(errors.Wrap(err, stdouterr.String()), node.Host)
-	}
-
-	stdout := &bytes.Buffer{}
-	err = client.Run(&sshexec.Cmd{
-		Command: getConfigcommand,
-		Stdout:  stdout,
-	})
-	if err != nil {
-		return "", errors.Wrap(errors.Wrap(err, "failed to get kubeconfig"), node.Host)
+		return "", err
 	}
 
 	kubeconfigReplacer := strings.NewReplacer(
@@ -189,9 +214,10 @@ func setupNode(node Node, versionConfig VersionConfiguration, sudoPrefix string)
 		"localhost", node.Host,
 	)
 
-	return kubeconfigReplacer.Replace(stdout.String()), nil
+	return kubeconfigReplacer.Replace(kubeconfig), nil
 }
 
+// TODO: add version validation (only last 3 versions are supported because of containerd.toml)
 func (c Cluster) Validate() error {
 	if len(c.MasterNodes) != 1 {
 		return errors.New("only clusters with exactly 1 master node supported")
@@ -216,35 +242,38 @@ func (c Cluster) Validate() error {
 
 func DeleteCluster(cluster *Cluster) error {
 	for _, n := range cluster.MasterNodes {
-		// TODO: handle error if already gone
-		if err := executeOnNode(n, "/usr/local/bin/k3s-uninstall.sh"); err != nil {
-			return errors.Wrapf(err, "failed to uninstall master %s", n.Host)
+		if err := removeNode(n); err != nil {
+			return err
 		}
 	}
 
-	for _, n := range cluster.Agents {
-		if err := executeOnNode(n, "/usr/local/bin/k3s-agent-uninstall.sh"); err != nil {
-			return errors.Wrapf(err, "failed to uninstall agent %s", n.Host)
-		}
-	}
+	// for _, n := range cluster.Agents {
+	// 	if err := executeScriptIfExistsOnNode(
+	// 		n, "sh /usr/local/bin/k3s-agent-uninstall.sh", gvisorUninstall,
+	// 	); err != nil {
+	// 		return errors.Wrapf(err, "failed to uninstall agent")
+	// 	}
+	// }
 
 	return nil
 }
 
-func executeOnNode(node Node, commands ...string) error {
-	client, err := sshexec.NewClient(fmt.Sprintf("%s:22", node.Host), node.User, []byte(node.PrivateKey))
+func removeNode(node Node) error {
+	remoteExecutor, err := NewExecutorForNode(node, useSudo)
 	if err != nil {
-		return errors.Wrapf(err, "failed to establish ssh connection to %s", node.Host)
+		return err
 	}
 
-	for _, command := range commands {
-		stderr := &bytes.Buffer{}
-		err = client.Run(&sshexec.Cmd{
-			Command: command,
-			Stderr:  stderr,
-		})
-		if err != nil {
-			return errors.Wrap(err, stderr.String())
+	masterUninstall := "/usr/local/bin/k3s-uninstall.sh"
+	uninstallCmds := []string{gvisorUninstall}
+
+	if _, err := remoteExecutor.FileHandler.Stat(masterUninstall); err == nil {
+		uninstallCmds = append(uninstallCmds, fmt.Sprintf("sh %s", masterUninstall))
+	}
+
+	for _, cmd := range uninstallCmds {
+		if _, err := remoteExecutor.SudoCombinedOutput(cmd); err != nil {
+			return err
 		}
 	}
 

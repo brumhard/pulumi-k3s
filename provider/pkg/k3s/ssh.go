@@ -13,8 +13,8 @@ import (
 )
 
 type RemoteExecutor struct {
-	fileHandler *sftp.Client
-	cmdHandler  *sshexec.Client
+	FileHandler *sftp.Client
+	CmdHandler  *sshexec.Client
 	addr        string
 	sudoPrefix  string
 }
@@ -51,8 +51,8 @@ func NewRemoteExecutor(addr, user string, sshkeyPEM []byte, useSudo bool) (*Remo
 	}
 
 	return &RemoteExecutor{
-		fileHandler: fileHandler,
-		cmdHandler:  cmdHandler,
+		FileHandler: fileHandler,
+		CmdHandler:  cmdHandler,
 		addr:        addr,
 		sudoPrefix:  sudoPrefix,
 	}, nil
@@ -61,14 +61,14 @@ func NewRemoteExecutor(addr, user string, sshkeyPEM []byte, useSudo bool) (*Remo
 func (e *RemoteExecutor) ExecuteScript(script []byte) error {
 	tmpScriptLocation := "/tmp/pulumi-k3s-tmp-script"
 
-	file, err := e.fileHandler.Create(tmpScriptLocation)
+	file, err := e.FileHandler.Create(tmpScriptLocation)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create tmp file for script")
 	}
 
 	defer func() {
 		file.Close()
-		e.fileHandler.Remove(tmpScriptLocation)
+		e.FileHandler.Remove(tmpScriptLocation)
 	}()
 
 	if _, err := io.Copy(file, bytes.NewReader(script)); err != nil {
@@ -79,7 +79,7 @@ func (e *RemoteExecutor) ExecuteScript(script []byte) error {
 		"sh %s", tmpScriptLocation,
 	)}
 
-	if err := e.cmdHandler.Run(executeScript); err != nil {
+	if err := e.CmdHandler.Run(executeScript); err != nil {
 		return errors.Wrap(err, "failed to execute script")
 	}
 
@@ -89,7 +89,7 @@ func (e *RemoteExecutor) ExecuteScript(script []byte) error {
 func (e *RemoteExecutor) CopyFile(fileReader io.Reader, dest string) error {
 	tmpFilePath := path.Join("/tmp", path.Base(dest))
 
-	file, err := e.fileHandler.Create(tmpFilePath)
+	file, err := e.FileHandler.Create(tmpFilePath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create tmp file at %s", tmpFilePath)
 	}
@@ -103,7 +103,7 @@ func (e *RemoteExecutor) CopyFile(fileReader io.Reader, dest string) error {
 	mvCmd := &sshexec.Cmd{Command: e.sudoSprintF(
 		"mv %s %s", tmpFilePath, dest,
 	)}
-	if err := e.cmdHandler.Run(mvCmd); err != nil {
+	if err := e.CmdHandler.Run(mvCmd); err != nil {
 		return errors.Wrapf(err, "failed to move from %s to %s", tmpFilePath, dest)
 	}
 
@@ -116,7 +116,7 @@ func (e *RemoteExecutor) SudoCombinedOutput(cmd string) (string, error) {
 
 func (e *RemoteExecutor) CombinedOutput(cmd string) (string, error) {
 	stdouterr := &bytes.Buffer{}
-	err := e.cmdHandler.Run(&sshexec.Cmd{
+	err := e.CmdHandler.Run(&sshexec.Cmd{
 		Command: cmd,
 		Stderr:  stdouterr,
 		Stdout:  stdouterr,
@@ -135,7 +135,7 @@ func (e *RemoteExecutor) SudoOutput(cmd string) (string, error) {
 func (e *RemoteExecutor) Output(cmd string) (string, error) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	err := e.cmdHandler.Run(&sshexec.Cmd{
+	err := e.CmdHandler.Run(&sshexec.Cmd{
 		Command: cmd,
 		Stderr:  stderr,
 		Stdout:  stdout,

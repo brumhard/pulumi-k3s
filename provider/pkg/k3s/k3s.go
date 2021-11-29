@@ -267,7 +267,7 @@ func removeNode(node Node) error {
 	masterUninstall := "/usr/local/bin/k3s-uninstall.sh"
 	uninstallCmds := []string{gvisorUninstall}
 
-	if _, err := remoteExecutor.fileHandler.Stat(masterUninstall); err == nil {
+	if _, err := remoteExecutor.FileHandler.Stat(masterUninstall); err == nil {
 		uninstallCmds = append(uninstallCmds, fmt.Sprintf("sh %s", masterUninstall))
 	}
 

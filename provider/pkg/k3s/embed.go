@@ -22,6 +22,9 @@ var (
 	//go:embed runtimeclass.yaml
 	gvisorRuntimeClass []byte
 
+	//go:embed cilium_install.sh
+	ciliumInstall []byte
+
 	//go:embed upgradeplan.yaml.tmpl
 	upgradePlanManifestTemplateString string
 

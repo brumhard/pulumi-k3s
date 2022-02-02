@@ -88,7 +88,7 @@ func (k *K8sClient) forEachObjectDoWithRetry(
 			Duration: 5 * time.Second,
 			Factor:   2,
 			Steps:    10,
-			Cap:      2 * time.Minute,
+			Cap:      5 * time.Minute,
 		}, func(e error) bool {
 			k.mapper.Reset()
 			return true //apierrors.IsConflict(err) || meta.IsNoMatchError(err)

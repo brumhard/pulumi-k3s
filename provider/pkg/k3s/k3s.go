@@ -15,6 +15,7 @@ const (
 	channelURL             = "https://update.k3s.io/v1-release/channels"
 	autoDeployManifestPath = "/var/lib/rancher/k3s/server/manifests"
 	containerdTemplatePath = "/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl"
+	kubeconfigPath         = "/etc/rancher/k3s/k3s.yaml"
 )
 
 var (
@@ -91,9 +92,28 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 		return err
 	}
 
+	if cluster.CNIConfig.Provider != "flannel" {
+		// disable flannel if using other cni provider
+		for i := range cluster.MasterNodes {
+			cluster.MasterNodes[i].Args = append(
+				cluster.MasterNodes[i].Args,
+				"--flannel-backend=none",
+				"--disable-network-policy",
+			)
+		}
+	}
+
 	kubeconfig, err := setupNode(cluster.MasterNodes[0], cluster.VersionConfig)
 	if err != nil {
 		return err
+	}
+
+	if cluster.CNIConfig.Provider == "cilium" {
+		if err := setupCilium(cluster.MasterNodes[0]); err != nil {
+			return err
+		}
+		// TODO: check if its possible to change cni providers (probably not)
+		// if not: add error somewhere that changing providers is not possible
 	}
 
 	if err := setupAutoUpdate(kubeconfig, cluster.VersionConfig); err != nil {
@@ -111,6 +131,25 @@ func MakeOrUpdateCluster(name string, cluster *Cluster) error {
 	}
 
 	cluster.KubeConfig = kubeconfig
+
+	return nil
+}
+
+// FIXME: install is not idempotent so it should be checked if its already installed first and only if not run install
+// TODO: add note that cilium will not be updated once it's installed (could maybe done with cilium upgrade but that needs to be checked)
+func setupCilium(node Node) error {
+	remoteExecutor, err := NewExecutorForNode(node, useSudo)
+	if err != nil {
+		return err
+	}
+
+	if err := remoteExecutor.ExecuteScript(ciliumInstall); err != nil {
+		return errors.Wrap(err, "failed to install cilium on master node")
+	}
+
+	if _, err := remoteExecutor.SudoCombinedOutput(fmt.Sprintf("KUBECONFIG=%s cilium install", kubeconfigPath)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -209,7 +248,7 @@ func setupNode(node Node, versionConfig VersionConfiguration) (string, error) {
 		return "", err
 	}
 
-	kubeconfig, err := remoteExecutor.SudoOutput("cat /etc/rancher/k3s/k3s.yaml")
+	kubeconfig, err := remoteExecutor.SudoOutput(fmt.Sprintf("cat %s", kubeconfigPath))
 	if err != nil {
 		return "", err
 	}
@@ -236,6 +275,12 @@ func (c Cluster) Validate() error {
 		return errors.Wrap(ErrOutputOnly, "kubeconfig")
 	}
 
+	switch c.CNIConfig.Provider {
+	case "", "flannel", "cilium":
+	default:
+		return errors.New("only flannel or cilium supported as CNI")
+	}
+
 	for _, n := range append(c.MasterNodes, c.Agents...) {
 		if err := n.Validate(); err != nil {
 			return err
@@ -245,6 +290,8 @@ func (c Cluster) Validate() error {
 	return nil
 }
 
+// FIXME: check this, does not seem to work
+// TODO: add cilium cleanup
 func DeleteCluster(cluster *Cluster) error {
 	for _, n := range cluster.MasterNodes {
 		if err := removeNode(n); err != nil {
@@ -296,6 +343,15 @@ func (n Node) Validate() error {
 
 	if n.User == "" {
 		return errors.Wrap(ErrRequiredProperty, "user")
+	}
+
+	for _, arg := range n.Args {
+		if strings.Contains(arg, "flannel-backend") && strings.Contains(arg, "none") {
+			return errors.New("disabling flannel is unsupported (set automatically for other CNIs)")
+		}
+		if strings.Contains(arg, "disable-network-policy") {
+			return errors.New("disabling network policy is unsupported")
+		}
 	}
 
 	return nil

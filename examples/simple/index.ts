@@ -14,6 +14,9 @@ const cluster = new k3s.Cluster("mycluster", {
             }
         }
     ],
+    cniConfig: {
+        provider: "cilium"
+    },
     versionConfig: {
         version: "v1.22.3+k3s1"
     }

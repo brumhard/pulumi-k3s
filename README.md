@@ -2,6 +2,8 @@
 
 > This is a side project and not intended for production usage.
 > That's why currently only single node setups are supported and there are no released binaries.
+>
+> To get more information on what decisions have been made for this project have a look at the [architecture decision records in the docs](docs/architecture/0001-record-architecture-decisions.md).
 
 `pulumi-k3s` closes the gap between existing Pulumi providers for IaaS (VMs) and the Kubernetes provider.
 With `pulumi-k3s` it is possible to define all your required infrastructure as well as Kubernetes resources in one pulumi stack

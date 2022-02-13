@@ -84,6 +84,7 @@ func (k *K8sClient) forEachObjectDoWithRetry(
 			return err
 		}
 
+		// FIXME: increase timeout to make sure that it does not go into "upgrade plan not found error"
 		err = retry.OnError(wait.Backoff{
 			Duration: 5 * time.Second,
 			Factor:   2,

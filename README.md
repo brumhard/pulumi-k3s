@@ -33,6 +33,18 @@ const cluster = new k3s.Cluster("mycluster", {
 ...
 ```
 
+## Features
+
+As mentioned `pulumi-k3s` is a side project to support my infrastructure setup which currently only consists of a single node cluster.
+Therefore, neither multiagent nor multi master setups are currently supported.
+
+Still, this provider already has some nice features including:
+
+- version bumps either automatically using one of the [k3s channels](https://rancher.com/docs/k3s/latest/en/upgrades/basic/#release-channels) or manually by bumping the version and reapplying the Pulumi stack.
+- support for the [gVisor](https://github.com/google/gvisor) runtime class
+- seamless integration with the Pulumi Kubernetes provider
+- custom installation arguments for the nodes to for example disable the default Traefik ingress controller
+
 ## Installation
 
 Currently, this provider is not optimized for distribution. Therefore, if you want to use it, you need to follow the instructions defined in the [Development section](#development) and build the provider as well as the needed SDK for you preferred language from the main branch and use that.

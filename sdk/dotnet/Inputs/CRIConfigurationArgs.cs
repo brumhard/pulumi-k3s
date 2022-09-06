@@ -10,7 +10,7 @@ using Pulumi.Serialization;
 namespace Pulumi.K3s.Inputs
 {
 
-    public sealed class CRIConfigurationArgs : Pulumi.ResourceArgs
+    public sealed class CRIConfigurationArgs : global::Pulumi.ResourceArgs
     {
         [Input("enableGVisor")]
         public Input<bool>? EnableGVisor { get; set; }
@@ -18,5 +18,6 @@ namespace Pulumi.K3s.Inputs
         public CRIConfigurationArgs()
         {
         }
+        public static new CRIConfigurationArgs Empty => new CRIConfigurationArgs();
     }
 }

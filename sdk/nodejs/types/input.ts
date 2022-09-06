@@ -2,7 +2,10 @@
 // *** Do not edit by hand unless you're certain you know what you are doing! ***
 
 import * as pulumi from "@pulumi/pulumi";
-import { input as inputs, output as outputs } from "../types";
+import * as inputs from "../types/input";
+import * as outputs from "../types/output";
+
+import * as utilities from "../utilities";
 
 export interface CRIConfigurationArgs {
     enableGVisor?: pulumi.Input<boolean>;
@@ -14,6 +17,15 @@ export interface NodeArgs {
     host: pulumi.Input<string>;
     privateKey: pulumi.Input<string>;
     user?: pulumi.Input<string>;
+}
+/**
+ * nodeArgsProvideDefaults sets the appropriate defaults for NodeArgs
+ */
+export function nodeArgsProvideDefaults(val: NodeArgs): NodeArgs {
+    return {
+        ...val,
+        user: (val.user) ?? "root",
+    };
 }
 
 export interface VersionConfigurationArgs {

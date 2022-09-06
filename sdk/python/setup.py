@@ -48,6 +48,7 @@ setup(name='pulumi_k3s',
       package_data={
           'pulumi_k3s': [
               'py.typed',
+              'pulumi-plugin.json',
           ]
       },
       install_requires=[

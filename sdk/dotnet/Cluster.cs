@@ -10,7 +10,7 @@ using Pulumi.Serialization;
 namespace Pulumi.K3s
 {
     [K3sResourceType("k3s:index:Cluster")]
-    public partial class Cluster : Pulumi.CustomResource
+    public partial class Cluster : global::Pulumi.CustomResource
     {
         [Output("agents")]
         public Output<ImmutableArray<Outputs.Node>> Agents { get; private set; } = null!;
@@ -67,7 +67,7 @@ namespace Pulumi.K3s
         }
     }
 
-    public sealed class ClusterArgs : Pulumi.ResourceArgs
+    public sealed class ClusterArgs : global::Pulumi.ResourceArgs
     {
         [Input("agents")]
         private InputList<Inputs.NodeArgs>? _agents;
@@ -91,5 +91,6 @@ namespace Pulumi.K3s
         public ClusterArgs()
         {
         }
+        public static new ClusterArgs Empty => new ClusterArgs();
     }
 }

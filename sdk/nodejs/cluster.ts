@@ -2,7 +2,8 @@
 // *** Do not edit by hand unless you're certain you know what you are doing! ***
 
 import * as pulumi from "@pulumi/pulumi";
-import { input as inputs, output as outputs } from "./types";
+import * as inputs from "./types/input";
+import * as outputs from "./types/output";
 import * as utilities from "./utilities";
 
 export class Cluster extends pulumi.CustomResource {
@@ -45,26 +46,24 @@ export class Cluster extends pulumi.CustomResource {
      * @param opts A bag of options that control this resource's behavior.
      */
     constructor(name: string, args: ClusterArgs, opts?: pulumi.CustomResourceOptions) {
-        let inputs: pulumi.Inputs = {};
+        let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
             if ((!args || args.masterNodes === undefined) && !opts.urn) {
                 throw new Error("Missing required property 'masterNodes'");
             }
-            inputs["agents"] = args ? args.agents : undefined;
-            inputs["masterNodes"] = args ? args.masterNodes : undefined;
-            inputs["versionConfig"] = args ? args.versionConfig : undefined;
-            inputs["kubeconfig"] = undefined /*out*/;
+            resourceInputs["agents"] = args ? args.agents : undefined;
+            resourceInputs["masterNodes"] = args ? args.masterNodes : undefined;
+            resourceInputs["versionConfig"] = args ? args.versionConfig : undefined;
+            resourceInputs["kubeconfig"] = undefined /*out*/;
         } else {
-            inputs["agents"] = undefined /*out*/;
-            inputs["kubeconfig"] = undefined /*out*/;
-            inputs["masterNodes"] = undefined /*out*/;
-            inputs["versionConfig"] = undefined /*out*/;
+            resourceInputs["agents"] = undefined /*out*/;
+            resourceInputs["kubeconfig"] = undefined /*out*/;
+            resourceInputs["masterNodes"] = undefined /*out*/;
+            resourceInputs["versionConfig"] = undefined /*out*/;
         }
-        if (!opts.version) {
-            opts = pulumi.mergeOptions(opts, { version: utilities.getVersion()});
-        }
-        super(Cluster.__pulumiType, name, inputs, opts);
+        opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
+        super(Cluster.__pulumiType, name, resourceInputs, opts);
     }
 }
 

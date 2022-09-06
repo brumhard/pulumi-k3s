@@ -27,6 +27,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource/plugin"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	pulumirpc "github.com/pulumi/pulumi/sdk/v3/proto/go"
 
@@ -47,6 +48,16 @@ func makeProvider(host *provider.HostClient, name, version string) (pulumirpc.Re
 		name:    name,
 		version: version,
 	}, nil
+}
+
+func (k *k3sProvider) Attach(ctx context.Context, req *pulumirpc.PluginAttach) (*emptypb.Empty, error) {
+	// copy pasted implementation from boilerplate repo
+	host, err := provider.NewHostClient(req.GetAddress())
+	if err != nil {
+		return nil, err
+	}
+	k.host = host
+	return &pbempty.Empty{}, nil
 }
 
 // Check validates that the given property bag is valid for a resource of the given type and returns

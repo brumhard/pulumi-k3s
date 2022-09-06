@@ -2,7 +2,8 @@
     "name": "@pulumi/k3s",
     "version": "${VERSION}",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "install": "node scripts/install-pulumi-plugin.js resource k3s ${VERSION}"
     },
     "dependencies": {
         "@pulumi/pulumi": "^3.0.0"
@@ -11,6 +12,7 @@
         "typescript": "^4.3.5"
     },
     "pulumi": {
-        "resource": true
+        "resource": true,
+        "name": "k3s"
     }
 }

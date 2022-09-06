@@ -10,7 +10,7 @@ using Pulumi.Serialization;
 namespace Pulumi.K3s.Inputs
 {
 
-    public sealed class VersionConfigurationArgs : Pulumi.ResourceArgs
+    public sealed class VersionConfigurationArgs : global::Pulumi.ResourceArgs
     {
         [Input("channel")]
         public Input<string>? Channel { get; set; }
@@ -21,5 +21,6 @@ namespace Pulumi.K3s.Inputs
         public VersionConfigurationArgs()
         {
         }
+        public static new VersionConfigurationArgs Empty => new VersionConfigurationArgs();
     }
 }

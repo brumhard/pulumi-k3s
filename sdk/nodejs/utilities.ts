@@ -47,3 +47,20 @@ export function getVersion(): string {
     }
     return version;
 }
+
+/** @internal */
+export function resourceOptsDefaults(): any {
+    return { version: getVersion() };
+}
+
+/** @internal */
+export function lazyLoad(exports: any, props: string[], loadModule: any) {
+    for (let property of props) {
+        Object.defineProperty(exports, property, {
+            enumerable: true,
+            get: function() {
+                return loadModule()[property];
+            },
+        });
+    }
+}

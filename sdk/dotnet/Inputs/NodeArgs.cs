@@ -10,7 +10,7 @@ using Pulumi.Serialization;
 namespace Pulumi.K3s.Inputs
 {
 
-    public sealed class NodeArgs : Pulumi.ResourceArgs
+    public sealed class NodeArgs : global::Pulumi.ResourceArgs
     {
         [Input("args")]
         private InputList<string>? _args;
@@ -36,5 +36,6 @@ namespace Pulumi.K3s.Inputs
         {
             User = "root";
         }
+        public static new NodeArgs Empty => new NodeArgs();
     }
 }

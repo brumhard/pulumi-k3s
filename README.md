@@ -1,3 +1,10 @@
+> [!WARNING]  
+> This is just a toy provider that I wrote based on other native providers I found (mainly azure at the time). It is not maintained since I personally don't use k3s anymore.
+>
+> I now think this provider is way to complicated and something that could be achieved using the command provider as I did in [another project](https://github.com/brumhard/kindacool/blob/be378de37f5da5e9cd95a1e44a14b389a3591a7c/pkg/k3s/cluster.go#L47).
+>
+> If you want to build a provider, there's now also a [new option that this repo doesn't use](https://www.pulumi.com/blog/pulumi-go-boilerplate-v2/).
+
 # k3s Pulumi Provider
 
 > This is a side project and not intended for production usage.
